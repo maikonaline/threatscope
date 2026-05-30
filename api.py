@@ -20,7 +20,7 @@ import json
 import os
 import tempfile
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from contextlib import asynccontextmanager
 
@@ -367,6 +367,137 @@ async def get_detections(
 
 
 # ---------------------------------------------------------------------------
+# Schemas de integraciones
+# ---------------------------------------------------------------------------
+
+
+class IntegrationTestRequest(BaseModel):
+    """Peticion de prueba de integracion."""
+
+    channel: str = Field(
+        ...,
+        description="Canal a probar: slack, splunk, sentinel, teams",
+    )
+    config: Dict[str, Any] = Field(
+        default={},
+        description=(
+            "Configuracion opcional del canal. Si no se envia, "
+            "se usan las variables de entorno del servidor."
+        ),
+    )
+
+
+class IntegrationTestResponse(BaseModel):
+    """Respuesta de prueba de integracion."""
+
+    channel: str
+    success: bool
+    detail: str
+
+
+class IntegrationStatusItem(BaseModel):
+    """Estado de una integracion individual."""
+
+    configured: bool
+    status: Optional[str] = None
+
+
+class IntegrationsStatusResponse(BaseModel):
+    """Estado de todas las integraciones."""
+
+    slack:    IntegrationStatusItem
+    splunk:   IntegrationStatusItem
+    sentinel: IntegrationStatusItem
+    teams:    IntegrationStatusItem
+
+
+# ---------------------------------------------------------------------------
+# Endpoints de integraciones
+# ---------------------------------------------------------------------------
+
+
+@app.post(
+    "/integrations/test",
+    response_model=IntegrationTestResponse,
+    summary="Prueba una integracion externa",
+    description=(
+        "Envia un mensaje de prueba al canal indicado y devuelve si fue exitoso. "
+        "Permite validar la configuracion desde el dashboard sin realizar un analisis real."
+    ),
+    tags=["Integrations"],
+)
+async def test_integration(body: IntegrationTestRequest) -> IntegrationTestResponse:
+    """
+    Prueba la conexion con un canal de notificacion externo.
+
+    Args:
+        body: canal ('slack' | 'splunk' | 'sentinel' | 'teams') y config opcional.
+
+    Returns:
+        IntegrationTestResponse con resultado del envio.
+
+    Raises:
+        HTTPException 400: si el canal es desconocido.
+    """
+    valid_channels = {"slack", "splunk", "sentinel", "teams"}
+    if body.channel not in valid_channels:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Canal desconocido: '{body.channel}'. Validos: {valid_channels}",
+        )
+
+    try:
+        from notifier import send_test
+        result = send_test(body.channel, body.config)
+        return IntegrationTestResponse(
+            channel=body.channel,
+            success=result["success"],
+            detail=result["detail"],
+        )
+    except Exception as e:
+        log.error(f"Error en /integrations/test [{body.channel}]: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+
+@app.get(
+    "/integrations/status",
+    response_model=IntegrationsStatusResponse,
+    summary="Estado de integraciones externas",
+    description=(
+        "Devuelve que integraciones estan configuradas en el servidor. "
+        "No expone secrets ni credenciales."
+    ),
+    tags=["Integrations"],
+)
+async def integrations_status() -> IntegrationsStatusResponse:
+    """
+    Consulta el estado de configuracion de cada integracion.
+
+    Returns:
+        IntegrationsStatusResponse con flag 'configured' por canal.
+    """
+    try:
+        from notifier import get_integrations_status
+        raw = get_integrations_status()
+
+        def _item(data: dict) -> IntegrationStatusItem:
+            return IntegrationStatusItem(
+                configured=data["configured"],
+                status="ok" if data["configured"] else None,
+            )
+
+        return IntegrationsStatusResponse(
+            slack=_item(raw["slack"]),
+            splunk=_item(raw["splunk"]),
+            sentinel=_item(raw["sentinel"]),
+            teams=_item(raw["teams"]),
+        )
+    except Exception as e:
+        log.error(f"Error en /integrations/status: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
 # Raiz
 # ---------------------------------------------------------------------------
 
@@ -379,5 +510,5 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs",
         "status": "/status",
-        "endpoints": ["/analyze", "/status", "/detections"],
+        "endpoints": ["/analyze", "/status", "/detections", "/integrations/status", "/integrations/test"],
     }

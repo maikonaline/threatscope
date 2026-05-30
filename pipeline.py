@@ -122,6 +122,28 @@ class AnalysisPipeline:
                     )
                     db.save_detection(det)
                     detections.append(det)
+
+                    # Disparar notificaciones para niveles CRITICO y ALTO
+                    if det.risk_level in ("CRITICO", "ALTO"):
+                        try:
+                            from notifier import send_alerts
+                            detection_dict = {
+                                "ip":               det.ip,
+                                "risk_level":       det.risk_level,
+                                "anomaly_score":    det.anomaly_score,
+                                "reputation_score": det.reputation_score,
+                                "is_known_malicious": det.is_known_malicious,
+                                "country":          det.country,
+                                "mitre_techniques": json.loads(det.mitre_techniques)
+                                                    if det.mitre_techniques else [],
+                                "summary":          det.summary,
+                                "batch_id":         self.batch_id,
+                            }
+                            send_alerts(detection_dict)
+                        except Exception as notify_err:
+                            # El notifier no puede crashear el pipeline
+                            log.warning(f"Error disparando notificaciones para IP {det.ip}: {notify_err}")
+
                 except Exception as e:
                     log.warning(f"Error procesando IP {row['ip']}: {e}")
                     continue

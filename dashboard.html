@@ -972,6 +972,91 @@
       border-color: rgba(59, 130, 246, 0.3);
       color: #60a5fa;
     }
+
+    /* ============================================================
+       INTEGRATIONS PANEL
+    ============================================================ */
+    .integrations-grid {
+      display: grid;
+      gap: 0;
+    }
+
+    .integration-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .integration-row:last-child { border-bottom: none; }
+
+    .integration-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      min-width: 80px;
+    }
+
+    .integration-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      border: 1px solid;
+    }
+
+    .integration-badge.active {
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.08);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .integration-badge.inactive {
+      color: var(--text-muted);
+      background: rgba(74, 94, 128, 0.08);
+      border-color: var(--border);
+    }
+
+    .integration-badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .btn-test-integration {
+      padding: 5px 14px;
+      background: transparent;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-test-integration:hover:not(:disabled) {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .btn-test-integration:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-test-integration.testing {
+      opacity: 0.7;
+      cursor: wait;
+    }
   </style>
 </head>
 <body>
@@ -1157,6 +1242,43 @@
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <!-- ── INTEGRACIONES EXTERNAS ────────────────────── -->
+      <div class="section">
+        <div class="section-title">Integraciones externas</div>
+        <div class="panel">
+          <div class="panel-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+            Canales de notificacion
+          </div>
+          <div class="integrations-grid" id="integrations-grid">
+            <!-- Skeleton de carga -->
+            <div class="integration-row">
+              <span class="integration-name"><div class="skeleton" style="width:50px;height:13px;"></div></span>
+              <div class="skeleton" style="width:80px;height:22px;border-radius:20px;"></div>
+              <div class="skeleton" style="width:70px;height:28px;border-radius:6px;"></div>
+            </div>
+            <div class="integration-row">
+              <span class="integration-name"><div class="skeleton" style="width:55px;height:13px;"></div></span>
+              <div class="skeleton" style="width:90px;height:22px;border-radius:20px;"></div>
+              <div class="skeleton" style="width:70px;height:28px;border-radius:6px;"></div>
+            </div>
+            <div class="integration-row">
+              <span class="integration-name"><div class="skeleton" style="width:60px;height:13px;"></div></span>
+              <div class="skeleton" style="width:100px;height:22px;border-radius:20px;"></div>
+              <div class="skeleton" style="width:70px;height:28px;border-radius:6px;"></div>
+            </div>
+            <div class="integration-row">
+              <span class="integration-name"><div class="skeleton" style="width:45px;height:13px;"></div></span>
+              <div class="skeleton" style="width:85px;height:22px;border-radius:20px;"></div>
+              <div class="skeleton" style="width:70px;height:28px;border-radius:6px;"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1806,10 +1928,102 @@
     });
 
     /* ============================================================
+       INTEGRATIONS
+    ============================================================ */
+    const INTEGRATION_NAMES = {
+      slack:    'Slack',
+      splunk:   'Splunk',
+      sentinel: 'Azure Sentinel',
+      teams:    'Teams',
+    };
+
+    async function fetchIntegrationsStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/integrations/status`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        renderIntegrations(data);
+      } catch (err) {
+        const grid = document.getElementById('integrations-grid');
+        if (grid) {
+          grid.innerHTML = `
+            <div class="integration-row">
+              <span class="info-key" style="color:var(--critical)">Error cargando integraciones: ${escHtml(err.message)}</span>
+            </div>`;
+        }
+      }
+    }
+
+    function renderIntegrations(data) {
+      const grid = document.getElementById('integrations-grid');
+      if (!grid) return;
+
+      const channels = ['slack', 'splunk', 'sentinel', 'teams'];
+
+      grid.innerHTML = channels.map(ch => {
+        const info        = data[ch] || {};
+        const configured  = info.configured === true;
+        const label       = INTEGRATION_NAMES[ch] || ch;
+        const badgeClass  = configured ? 'active' : 'inactive';
+        const badgeText   = configured ? 'Activo' : 'No configurado';
+        const btnDisabled = configured ? '' : 'disabled';
+
+        return `
+          <div class="integration-row">
+            <span class="integration-name">${label}</span>
+            <span class="integration-badge ${badgeClass}">
+              <span class="integration-badge-dot"></span>
+              ${badgeText}
+            </span>
+            <button
+              class="btn-test-integration"
+              data-channel="${ch}"
+              ${btnDisabled}
+              title="${configured ? 'Enviar mensaje de prueba' : 'Canal no configurado en el servidor'}"
+            >Probar</button>
+          </div>`;
+      }).join('');
+
+      /* Bind click handlers */
+      grid.querySelectorAll('.btn-test-integration:not(:disabled)').forEach(btn => {
+        btn.addEventListener('click', () => testIntegration(btn.dataset.channel, btn));
+      });
+    }
+
+    async function testIntegration(channel, btn) {
+      btn.disabled  = true;
+      btn.classList.add('testing');
+      const originalText = btn.textContent;
+      btn.textContent = 'Probando...';
+
+      try {
+        const res = await fetch(`${API_BASE}/integrations/test`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ channel, config: {} }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast(`${INTEGRATION_NAMES[channel]}: test exitoso`, 'success');
+        } else {
+          showToast(`${INTEGRATION_NAMES[channel]}: ${data.detail || 'Error desconocido'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Error probando ${INTEGRATION_NAMES[channel]}: ${err.message}`, 'error');
+      } finally {
+        btn.disabled  = false;
+        btn.classList.remove('testing');
+        btn.textContent = originalText;
+      }
+    }
+
+    /* ============================================================
        INIT
     ============================================================ */
     document.addEventListener('DOMContentLoaded', () => {
       doRefresh();
+      fetchIntegrationsStatus();
       /* Update "hace X segundos" each second even without refresh */
       setInterval(updateTimeDisplay, 5000);
     });
