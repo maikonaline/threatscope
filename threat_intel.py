@@ -42,14 +42,88 @@ MITRE_DB = {
 }
 
 
+def _query_abuseipdb(ip: str) -> Optional[Reputation]:
+    """
+    Consulta AbuseIPDB API v2 para obtener reputación real de una IP.
+
+    Solo se invoca si ABUSEIPDB_API_KEY está configurada en el entorno.
+    Devuelve None en cualquier condición de error para permitir fallback.
+
+    Args:
+        ip: Dirección IP a consultar.
+
+    Returns:
+        Reputation con datos reales de AbuseIPDB, o None si falla o no hay key.
+    """
+    api_key = settings.ABUSEIPDB_KEY
+    if not api_key:
+        return None
+
+    try:
+        resp = requests.get(
+            "https://api.abuseipdb.com/api/v2/check",
+            headers={"Key": api_key, "Accept": "application/json"},
+            params={"ipAddress": ip, "maxAgeInDays": 90, "verbose": True},
+            timeout=settings.IPWHOIS_TIMEOUT,
+        )
+
+        if resp.status_code == 429:
+            log.warning("AbuseIPDB: límite de requests diario alcanzado. Usando fallback.")
+            return None
+
+        if resp.status_code != 200:
+            log.warning(f"AbuseIPDB respondió {resp.status_code} para {ip}. Usando fallback.")
+            return None
+
+        data = resp.json().get("data", {})
+        abuse_score = float(data.get("abuseConfidenceScore", 0))
+        total_reports = int(data.get("totalReports", 0))
+        country = data.get("countryCode") or "??"
+        is_whitelisted = bool(data.get("isWhitelisted", False))
+
+        # IP en whitelist de AbuseIPDB → reputación limpia
+        if is_whitelisted:
+            return Reputation(score=0.0, is_known=False, country=country)
+
+        is_known_malicious = total_reports > 0
+
+        log.info(
+            f"AbuseIPDB [{ip}]: score={abuse_score:.0f}/100, "
+            f"reports={total_reports}, country={country}, malicious={is_known_malicious}"
+        )
+
+        return Reputation(
+            score=abuse_score,
+            is_known=is_known_malicious,
+            country=country,
+            is_proxy=False,   # AbuseIPDB no expone este campo en v2/check básico
+            is_hosting=False,
+        )
+
+    except requests.Timeout:
+        log.warning(f"AbuseIPDB: timeout consultando {ip}. Usando fallback.")
+        return None
+    except Exception as e:
+        log.warning(f"AbuseIPDB: error inesperado para {ip}: {e}. Usando fallback.")
+        return None
+
+
 def query_reputation(ip: str) -> Reputation:
     """
     Consulta reputación de una IP.
-    En producción: AbuseIPDB, VirusTotal, etc.
-    Aquí: lógica heurística + simulación para funcionar sin API key.
+
+    Prioridad:
+    1. AbuseIPDB (si ABUSEIPDB_API_KEY está configurada) — datos reales
+    2. ipwho.is — geolocalización + heurísticas de red
+    3. Fallback estático — lógica local sin dependencias externas
     """
+    # --- Nivel 1: AbuseIPDB con datos reales ---
+    abuseipdb_result = _query_abuseipdb(ip)
+    if abuseipdb_result is not None:
+        return abuseipdb_result
+
+    # --- Nivel 2: ipwho.is + heurísticas ---
     try:
-        # Intenta consultar ipwho.is para datos reales de red
         resp = requests.get(f"https://ipwho.is/{ip}", timeout=settings.IPWHOIS_TIMEOUT)
         if resp.status_code == 200:
             data = resp.json()
@@ -75,7 +149,7 @@ def query_reputation(ip: str) -> Reputation:
     except Exception as e:
         log.warning(f"Error consultando threat intel para {ip}: {e}")
 
-    # Fallback: lógica simple sin API
+    # --- Nivel 3: fallback estático sin dependencias externas ---
     is_tor = ip.startswith("185.220.101.")
     is_proxy = ip.startswith(("45.", "193.", "194."))
     score = 92 if is_tor else (60 if is_proxy else 5)
