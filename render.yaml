@@ -1,0 +1,31 @@
+# render.yaml — Configuracion de deploy en Render.com
+# Documentacion: https://render.com/docs/render-yaml-spec
+
+services:
+  - type: web
+    name: threatscope-api
+    env: python
+    plan: free                          # Plan gratuito
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+
+    # Variables de entorno (las secretas se configuran en el dashboard de Render)
+    envVars:
+      - key: THREATSCOPE_ENV
+        value: production
+      - key: THREATSCOPE_LOG_LEVEL
+        value: INFO
+      - key: THREATSCOPE_DB_ENGINE
+        value: sqlite
+      - key: THREATSCOPE_DB_PATH
+        value: /opt/render/project/src/data/threatscope.db
+      - key: ML_CONTAMINATION
+        value: "0.05"
+      - key: ML_N_ESTIMATORS
+        value: "100"
+      # Las claves de API se añaden manualmente en el dashboard:
+      # ABUSEIPDB_API_KEY
+      # VIRUSTOTAL_API_KEY
+
+    # Health check
+    healthCheckPath: /status
