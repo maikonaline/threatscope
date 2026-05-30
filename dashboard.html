@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThreatScope — Security Dashboard</title>
+  <style>
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary:    #0a0e1a;
+      --bg-secondary:  #0f1526;
+      --bg-card:       #131929;
+      --bg-card-hover: #1a2236;
+      --border:        #1e2d4a;
+      --border-light:  #253352;
+      --text-primary:  #e2e8f0;
+      --text-secondary:#8899b4;
+      --text-muted:    #4a5e80;
+      --accent-blue:   #3b82f6;
+      --accent-cyan:   #06b6d4;
+
+      --critical:      #ef4444;
+      --critical-bg:   rgba(239, 68, 68, 0.08);
+      --critical-border:rgba(239, 68, 68, 0.3);
+
+      --high:          #f97316;
+      --high-bg:       rgba(249, 115, 22, 0.08);
+      --high-border:   rgba(249, 115, 22, 0.3);
+
+      --medium:        #eab308;
+      --medium-bg:     rgba(234, 179, 8, 0.08);
+      --medium-border: rgba(234, 179, 8, 0.3);
+
+      --low:           #22c55e;
+      --low-bg:        rgba(34, 197, 94, 0.08);
+      --low-border:    rgba(34, 197, 94, 0.3);
+
+      --radius:        8px;
+      --radius-lg:     12px;
+      --font:          'Segoe UI', system-ui, -apple-system, sans-serif;
+      --font-mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================================
+       SCROLLBAR
+    ============================================================ */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ============================================================
+       LAYOUT
+    ============================================================ */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    main {
+      flex: 1;
+      padding: 24px 0 40px;
+    }
+
+    .section { margin-bottom: 32px; }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #1e3a5f, #0ea5e9);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-icon svg { width: 18px; height: 18px; }
+
+    .logo-name {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #60a5fa, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-version {
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #22c55e;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+      animation: pulse-live 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px #22c55e; }
+      50%       { opacity: 0.5; box-shadow: 0 0 12px #22c55e; }
+    }
+
+    .system-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      border: 1px solid;
+      transition: all 0.3s ease;
+    }
+
+    .system-status-badge.status-ok {
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.08);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .system-status-badge.status-degraded {
+      color: var(--high);
+      background: var(--high-bg);
+      border-color: var(--high-border);
+    }
+
+    .system-status-badge.status-loading {
+      color: var(--text-muted);
+      background: rgba(74, 94, 128, 0.1);
+      border-color: var(--border);
+    }
+
+    .status-dot-badge {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ============================================================
+       METRIC CARDS
+    ============================================================ */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+      .metrics-grid { grid-template-columns: 1fr; }
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+      cursor: default;
+    }
+
+    .metric-card:hover {
+      border-color: var(--border-light);
+      transform: translateY(-1px);
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .metric-card.critical::before { background: var(--critical); }
+    .metric-card.high::before     { background: var(--high); }
+    .metric-card.medium::before   { background: var(--medium); }
+    .metric-card.low::before      { background: var(--low); }
+
+    .metric-card.critical { border-color: var(--critical-border); }
+    .metric-card.high     { border-color: var(--high-border); }
+    .metric-card.medium   { border-color: var(--medium-border); }
+    .metric-card.low      { border-color: var(--low-border); }
+
+    .metric-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .metric-card.critical .metric-label { color: var(--critical); }
+    .metric-card.high     .metric-label { color: var(--high); }
+    .metric-card.medium   .metric-label { color: var(--medium); }
+    .metric-card.low      .metric-label { color: var(--low); }
+
+    .metric-value {
+      font-size: 42px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      line-height: 1;
+      margin-bottom: 8px;
+      transition: all 0.4s ease;
+    }
+
+    .metric-card.critical .metric-value { color: var(--critical); }
+    .metric-card.high     .metric-value { color: var(--high); }
+    .metric-card.medium   .metric-value { color: var(--medium); }
+    .metric-card.low      .metric-value { color: var(--low); }
+
+    .metric-sublabel {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .metric-glow {
+      position: absolute;
+      bottom: -20px; right: -20px;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      opacity: 0.04;
+      pointer-events: none;
+    }
+
+    .metric-card.critical .metric-glow { background: var(--critical); }
+    .metric-card.high     .metric-glow { background: var(--high); }
+    .metric-card.medium   .metric-glow { background: var(--medium); }
+    .metric-card.low      .metric-glow { background: var(--low); }
+
+    /* ============================================================
+       ANALYSIS PANEL
+    ============================================================ */
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .analysis-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title svg {
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--border-light);
+      border-radius: var(--radius);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.04);
+    }
+
+    .drop-zone.drag-over { transform: scale(1.01); }
+
+    .drop-zone-icon {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 12px;
+      color: var(--text-muted);
+    }
+
+    .drop-zone-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .drop-zone-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .drop-zone-sub code {
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+      font-size: 10px;
+    }
+
+    #csv-input { display: none; }
+
+    .file-selected {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      border-radius: var(--radius);
+      font-size: 12px;
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      display: none;
+    }
+
+    .btn-analyze {
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #1e40af, #0ea5e9);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-analyze:hover:not(:disabled) {
+      background: linear-gradient(135deg, #1d4ed8, #0284c7);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.3);
+    }
+
+    .btn-analyze:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Analysis Result */
+    .analysis-result {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .result-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .result-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+
+    .result-badge.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .result-badge.error {
+      background: var(--critical-bg);
+      color: var(--critical);
+      border: 1px solid var(--critical-border);
+    }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .result-stat {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      text-align: center;
+    }
+
+    .result-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+    }
+
+    .result-stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* System Info Panel */
+    .info-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .info-row:last-child { border-bottom: none; }
+
+    .info-key {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .info-value {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      text-align: right;
+    }
+
+    .info-value.ok     { color: #22c55e; }
+    .info-value.error  { color: var(--critical); }
+    .info-value.fitted { color: var(--accent-cyan); }
+
+    /* ============================================================
+       DETECTIONS TABLE
+    ============================================================ */
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+    }
+
+    .filter-btn:hover { border-color: var(--border-light); color: var(--text-secondary); }
+    .filter-btn.active { color: #fff; }
+
+    .filter-btn.all.active { background: var(--border-light); border-color: var(--border-light); }
+
+    .filter-btn.critical.active {
+      background: var(--critical-bg);
+      border-color: var(--critical-border);
+      color: var(--critical);
+    }
+
+    .filter-btn.high.active {
+      background: var(--high-bg);
+      border-color: var(--high-border);
+      color: var(--high);
+    }
+
+    .filter-btn.medium.active {
+      background: var(--medium-bg);
+      border-color: var(--medium-border);
+      color: var(--medium);
+    }
+
+    .filter-btn.low.active {
+      background: var(--low-bg);
+      border-color: var(--low-border);
+      color: var(--low);
+    }
+
+    .table-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .table-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+
+    thead {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    thead th {
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody tr:hover { background: var(--bg-card-hover); }
+
+    tbody td {
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+
+    .td-ip {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-primary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .malicious-indicator {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--critical);
+      margin-left: 6px;
+      vertical-align: middle;
+      box-shadow: 0 0 4px var(--critical);
+      title: "IP conocida maliciosa";
+    }
+
+    /* Risk badge */
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .risk-badge.CRITICO, .risk-badge.CRÍTICO {
+      color: var(--critical);
+      background: var(--critical-bg);
+      border-color: var(--critical-border);
+    }
+
+    .risk-badge.ALTO {
+      color: var(--high);
+      background: var(--high-bg);
+      border-color: var(--high-border);
+    }
+
+    .risk-badge.MEDIO {
+      color: var(--medium);
+      background: var(--medium-bg);
+      border-color: var(--medium-border);
+    }
+
+    .risk-badge.BAJO {
+      color: var(--low);
+      background: var(--low-bg);
+      border-color: var(--low-border);
+    }
+
+    .td-score {
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .td-mitre {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-width: 200px;
+    }
+
+    .mitre-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 5px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 3px;
+      color: #60a5fa;
+      white-space: nowrap;
+    }
+
+    .td-summary {
+      max-width: 280px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .td-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Empty state */
+    .table-empty {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .table-empty-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      opacity: 0.4;
+    }
+
+    .table-empty-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .table-empty-sub {
+      font-size: 12px;
+    }
+
+    /* ============================================================
+       FOOTER
+    ============================================================ */
+    footer {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 12px 0;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .last-updated {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .last-updated svg { color: var(--text-muted); }
+
+    .update-time { color: var(--text-secondary); }
+
+    .auto-refresh-indicator {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .refresh-progress {
+      width: 60px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    .refresh-bar {
+      height: 100%;
+      background: var(--accent-cyan);
+      border-radius: 1px;
+      transition: width 1s linear;
+    }
+
+    .btn-refresh {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: transparent;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-refresh:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .btn-refresh:active { transform: scale(0.97); }
+
+    .btn-refresh svg { transition: transform 0.4s ease; }
+    .btn-refresh.spinning svg { animation: spin 0.7s linear infinite; }
+
+    /* ============================================================
+       SKELETON LOADER
+    ============================================================ */
+    .skeleton {
+      background: linear-gradient(90deg,
+        var(--border) 0%,
+        var(--border-light) 50%,
+        var(--border) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-row td { padding: 14px 16px; }
+
+    /* ============================================================
+       WAKE-UP MESSAGE
+    ============================================================ */
+    .wakeup-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: rgba(234, 179, 8, 0.08);
+      border: 1px solid rgba(234, 179, 8, 0.25);
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: var(--medium);
+    }
+
+    .wakeup-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(234, 179, 8, 0.3);
+      border-top-color: var(--medium);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       TOAST NOTIFICATION
+    ============================================================ */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid;
+      max-width: 320px;
+      pointer-events: auto;
+      animation: toast-in 0.25s ease;
+    }
+
+    @keyframes toast-in {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    .toast.success {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+    }
+
+    .toast.error {
+      background: var(--critical-bg);
+      border-color: var(--critical-border);
+      color: var(--critical);
+    }
+
+    .toast.info {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
+  <header>
+    <div class="container">
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <span class="logo-name">ThreatScope</span>
+          <span class="logo-version">v1.0</span>
+        </div>
+
+        <div class="header-status">
+          <div class="live-indicator">
+            <div class="live-dot"></div>
+            LIVE
+          </div>
+          <div id="system-status-badge" class="system-status-badge status-loading">
+            <div class="status-dot-badge"></div>
+            <span id="system-status-text">CARGANDO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       MAIN
+  ============================================================ -->
+  <main>
+    <div class="container">
+
+      <!-- Wake-up banner -->
+      <div id="wakeup-banner" class="wakeup-banner">
+        <div class="wakeup-spinner"></div>
+        <span>Despertando servicio en Render.com — esto puede tardar hasta 30 segundos en el primer inicio...</span>
+      </div>
+
+      <!-- ── MÉTRICAS ────────────────────────────────────── -->
+      <div class="section">
+        <div class="section-title">Detecciones por nivel de riesgo (ultimas 24h)</div>
+        <div class="metrics-grid">
+
+          <div class="metric-card critical">
+            <div class="metric-label">Critico</div>
+            <div class="metric-value" id="count-critical">—</div>
+            <div class="metric-sublabel">amenazas activas</div>
+            <div class="metric-glow"></div>
+          </div>
+
+          <div class="metric-card high">
+            <div class="metric-label">Alto</div>
+            <div class="metric-value" id="count-high">—</div>
+            <div class="metric-sublabel">eventos de riesgo</div>
+            <div class="metric-glow"></div>
+          </div>
+
+          <div class="metric-card medium">
+            <div class="metric-label">Medio</div>
+            <div class="metric-value" id="count-medium">—</div>
+            <div class="metric-sublabel">anomalias detectadas</div>
+            <div class="metric-glow"></div>
+          </div>
+
+          <div class="metric-card low">
+            <div class="metric-label">Bajo</div>
+            <div class="metric-value" id="count-low">—</div>
+            <div class="metric-sublabel">actividad inusual</div>
+            <div class="metric-glow"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── ANÁLISIS + ESTADO SISTEMA ──────────────────── -->
+      <div class="section">
+        <div class="section-title">Analisis y estado del sistema</div>
+        <div class="analysis-grid">
+
+          <!-- Upload panel -->
+          <div class="panel">
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Analizar CSV de red
+            </div>
+
+            <div id="drop-zone" class="drop-zone">
+              <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              <div class="drop-zone-text">Arrastra tu CSV aqui o haz clic para seleccionar</div>
+              <div class="drop-zone-sub">
+                Columnas requeridas: <code>ip, intentos_login, fallos_login, bytes_descargados, horas_actividad, puertos_distintos</code>
+              </div>
+              <input type="file" id="csv-input" accept=".csv" />
+            </div>
+
+            <div id="file-selected" class="file-selected"></div>
+
+            <button id="btn-analyze" class="btn-analyze" disabled>
+              <div id="analyze-spinner" class="spinner"></div>
+              <svg id="analyze-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <span id="analyze-btn-text">Selecciona un CSV primero</span>
+            </button>
+
+            <!-- Result -->
+            <div id="analysis-result" class="analysis-result">
+              <div class="result-header">
+                <span class="result-title">Ultimo analisis</span>
+                <span id="result-badge" class="result-badge success">OK</span>
+              </div>
+              <div id="result-stats" class="result-stats"></div>
+            </div>
+          </div>
+
+          <!-- System info panel -->
+          <div class="panel">
+            <div class="panel-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              Estado del sistema
+            </div>
+
+            <div class="info-grid" id="system-info">
+              <div class="info-row">
+                <span class="info-key">API Status</span>
+                <span class="info-value skeleton" style="width:60px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Entorno</span>
+                <span class="info-value skeleton" style="width:80px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Base de datos</span>
+                <span class="info-value skeleton" style="width:50px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Motor DB</span>
+                <span class="info-value skeleton" style="width:60px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Modelo ML</span>
+                <span class="info-value skeleton" style="width:50px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Algoritmo</span>
+                <span class="info-value skeleton" style="width:110px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Modelo entrenado</span>
+                <span class="info-value skeleton" style="width:40px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Total detecciones (BD)</span>
+                <span class="info-value skeleton" style="width:30px;height:14px;">&nbsp;</span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">Ultima actualizacion</span>
+                <span class="info-value skeleton" style="width:140px;height:14px;">&nbsp;</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── TABLA DE DETECCIONES ────────────────────────── -->
+      <div class="section">
+        <div class="section-title">Historial de detecciones</div>
+
+        <div class="table-toolbar">
+          <div class="filter-group">
+            <button class="filter-btn all active" data-filter="ALL">Todas</button>
+            <button class="filter-btn critical" data-filter="CRITICO">Critico</button>
+            <button class="filter-btn high" data-filter="ALTO">Alto</button>
+            <button class="filter-btn medium" data-filter="MEDIO">Medio</button>
+            <button class="filter-btn low" data-filter="BAJO">Bajo</button>
+          </div>
+          <span id="table-count" class="table-count">Cargando...</span>
+        </div>
+
+        <div class="table-wrapper">
+          <div class="table-scroll">
+            <table id="detections-table">
+              <thead>
+                <tr>
+                  <th>IP</th>
+                  <th>Nivel</th>
+                  <th>Pais</th>
+                  <th>Score ML</th>
+                  <th>Tecnicas MITRE</th>
+                  <th>Resumen</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="detections-tbody">
+                <!-- skeleton rows -->
+                <tr class="skeleton-row">
+                  <td><div class="skeleton" style="width:110px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:60px;height:18px;border-radius:4px;"></div></td>
+                  <td><div class="skeleton" style="width:40px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:50px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:80px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:200px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:130px;height:13px;"></div></td>
+                </tr>
+                <tr class="skeleton-row">
+                  <td><div class="skeleton" style="width:105px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:50px;height:18px;border-radius:4px;"></div></td>
+                  <td><div class="skeleton" style="width:35px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:55px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:90px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:220px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:120px;height:13px;"></div></td>
+                </tr>
+                <tr class="skeleton-row">
+                  <td><div class="skeleton" style="width:115px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:65px;height:18px;border-radius:4px;"></div></td>
+                  <td><div class="skeleton" style="width:45px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:48px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:70px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:190px;height:13px;"></div></td>
+                  <td><div class="skeleton" style="width:135px;height:13px;"></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       FOOTER
+  ============================================================ -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <div class="last-updated">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Actualizado
+            <span id="update-time-text" class="update-time">hace un momento</span>
+          </div>
+          <div class="auto-refresh-indicator">
+            <span>Auto-refresh 30s</span>
+            <div class="refresh-progress">
+              <div id="refresh-bar" class="refresh-bar" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+        <button id="btn-refresh" class="btn-refresh">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+          </svg>
+          Actualizar ahora
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ============================================================
+       JAVASCRIPT
+  ============================================================ -->
+  <script>
+    'use strict';
+
+    /* ============================================================
+       CONFIG — Cambiar aqui la URL de la API
+    ============================================================ */
+    const API_BASE = 'https://threatscope-uoza.onrender.com';
+
+    /* Umbral de tiempo (ms) para mostrar el banner "Despertando servicio" */
+    const COLD_START_THRESHOLD_MS = 5000;
+
+    /* Intervalo de auto-refresh en segundos */
+    const AUTO_REFRESH_SECONDS = 30;
+
+    /* ============================================================
+       STATE
+    ============================================================ */
+    let state = {
+      detections: [],
+      activeFilter: 'ALL',
+      lastUpdated: null,
+      isLoading: false,
+      refreshCountdown: AUTO_REFRESH_SECONDS,
+      refreshTimer: null,
+      countdownTimer: null,
+    };
+
+    /* ============================================================
+       DOM REFS
+    ============================================================ */
+    const $ = id => document.getElementById(id);
+
+    const dom = {
+      systemBadge:     $('system-status-badge'),
+      systemText:      $('system-status-text'),
+      systemInfo:      $('system-info'),
+      wakeupBanner:    $('wakeup-banner'),
+      countCritical:   $('count-critical'),
+      countHigh:       $('count-high'),
+      countMedium:     $('count-medium'),
+      countLow:        $('count-low'),
+      dropZone:        $('drop-zone'),
+      csvInput:        $('csv-input'),
+      fileSelected:    $('file-selected'),
+      btnAnalyze:      $('btn-analyze'),
+      analyzeSpinner:  $('analyze-spinner'),
+      analyzeIcon:     $('analyze-icon'),
+      analyzeBtnText:  $('analyze-btn-text'),
+      analysisResult:  $('analysis-result'),
+      resultBadge:     $('result-badge'),
+      resultStats:     $('result-stats'),
+      detectionsTbody: $('detections-tbody'),
+      tableCount:      $('table-count'),
+      updateTimeText:  $('update-time-text'),
+      refreshBar:      $('refresh-bar'),
+      btnRefresh:      $('btn-refresh'),
+      toastContainer:  $('toast-container'),
+    };
+
+    /* ============================================================
+       UTILITIES
+    ============================================================ */
+    function formatTimestamp(iso) {
+      if (!iso) return '—';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString('es-ES', {
+          day:    '2-digit',
+          month:  '2-digit',
+          year:   'numeric',
+          hour:   '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+      } catch { return iso; }
+    }
+
+    function timeAgo(date) {
+      if (!date) return 'nunca';
+      const secs = Math.floor((Date.now() - date) / 1000);
+      if (secs < 5)  return 'hace un momento';
+      if (secs < 60) return `hace ${secs}s`;
+      if (secs < 3600) return `hace ${Math.floor(secs / 60)}m`;
+      return `hace ${Math.floor(secs / 3600)}h`;
+    }
+
+    function showToast(msg, type = 'info') {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      dom.toastContainer.appendChild(t);
+      setTimeout(() => t.remove(), 4000);
+    }
+
+    /* ============================================================
+       FETCH WITH TIMEOUT
+    ============================================================ */
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      /* Mostrar banner si tarda más de COLD_START_THRESHOLD_MS */
+      const wakeupTimer = setTimeout(() => {
+        dom.wakeupBanner.style.display = 'flex';
+      }, COLD_START_THRESHOLD_MS);
+
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(wakeupTimer);
+        dom.wakeupBanner.style.display = 'none';
+        return res;
+      } catch (err) {
+        clearTimeout(wakeupTimer);
+        dom.wakeupBanner.style.display = 'none';
+        throw err;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    /* ============================================================
+       API CALLS
+    ============================================================ */
+    async function fetchStatus() {
+      try {
+        const res = await fetchWithTimeout(`${API_BASE}/status`);
+        const data = await res.json();
+        renderStatus(data);
+      } catch (err) {
+        renderStatusError(err);
+      }
+    }
+
+    async function fetchDetections(hours = 24, limit = 500) {
+      try {
+        const url = `${API_BASE}/detections?hours=${hours}&limit=${limit}`;
+        const res = await fetchWithTimeout(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        state.detections = data;
+        renderMetrics(data);
+        renderTable(data, state.activeFilter);
+        state.lastUpdated = Date.now();
+        updateTimeDisplay();
+      } catch (err) {
+        dom.tableCount.textContent = 'Error cargando detecciones';
+        dom.detectionsTbody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="table-empty">
+                <svg class="table-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <div class="table-empty-title">Error al cargar detecciones</div>
+                <div class="table-empty-sub">${err.message}</div>
+              </div>
+            </td>
+          </tr>`;
+      }
+    }
+
+    async function runAnalysis(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      setAnalyzeLoading(true);
+
+      /* Mostrar banner si el servicio tarda en responder */
+      const wakeupTimer = setTimeout(() => {
+        dom.wakeupBanner.style.display = 'flex';
+      }, COLD_START_THRESHOLD_MS);
+
+      try {
+        const res = await fetch(`${API_BASE}/analyze`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        clearTimeout(wakeupTimer);
+        dom.wakeupBanner.style.display = 'none';
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.detail || `HTTP ${res.status}`);
+        }
+
+        renderAnalysisResult(data, true);
+        showToast(`Analisis completado: ${data.anomalies_found} anomalias en ${data.total_events} eventos`, 'success');
+
+        /* Refrescar tabla con los nuevos datos */
+        await fetchDetections();
+
+      } catch (err) {
+        clearTimeout(wakeupTimer);
+        dom.wakeupBanner.style.display = 'none';
+        renderAnalysisResult(null, false, err.message);
+        showToast(`Error en analisis: ${err.message}`, 'error');
+      } finally {
+        setAnalyzeLoading(false);
+      }
+    }
+
+    /* ============================================================
+       RENDER: STATUS
+    ============================================================ */
+    function renderStatus(data) {
+      const isOk = data.status === 'ok';
+
+      dom.systemBadge.className = `system-status-badge status-${isOk ? 'ok' : 'degraded'}`;
+      dom.systemText.textContent = isOk ? 'SISTEMA OK' : 'DEGRADADO';
+
+      const db    = data.database  || {};
+      const model = data.model     || {};
+
+      dom.systemInfo.innerHTML = `
+        <div class="info-row">
+          <span class="info-key">API Status</span>
+          <span class="info-value ${isOk ? 'ok' : 'error'}">${(data.status || '—').toUpperCase()}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Entorno</span>
+          <span class="info-value">${data.environment || '—'}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Base de datos</span>
+          <span class="info-value ${db.status === 'ok' ? 'ok' : 'error'}">${(db.status || '—').toUpperCase()}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Motor DB</span>
+          <span class="info-value">${db.engine || '—'}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Modelo ML</span>
+          <span class="info-value ${model.status === 'ok' ? 'ok' : 'error'}">${(model.status || '—').toUpperCase()}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Algoritmo</span>
+          <span class="info-value fitted">${model.algorithm || '—'}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Modelo entrenado</span>
+          <span class="info-value ${model.fitted ? 'ok' : 'error'}">${model.fitted ? 'SI' : 'NO'}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Total detecciones (BD)</span>
+          <span class="info-value">${db.total_detections ?? '—'}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Ultima actualizacion</span>
+          <span class="info-value">${formatTimestamp(data.timestamp)}</span>
+        </div>
+      `;
+    }
+
+    function renderStatusError(err) {
+      dom.systemBadge.className = 'system-status-badge status-degraded';
+      dom.systemText.textContent = 'SIN CONEXION';
+
+      dom.systemInfo.innerHTML = `
+        <div class="info-row">
+          <span class="info-key">API Status</span>
+          <span class="info-value error">ERROR</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Detalle</span>
+          <span class="info-value error">${err.message}</span>
+        </div>
+      `;
+    }
+
+    /* ============================================================
+       RENDER: METRICS
+    ============================================================ */
+    function renderMetrics(detections) {
+      const counts = { CRITICO: 0, ALTO: 0, MEDIO: 0, BAJO: 0 };
+      detections.forEach(d => {
+        const key = d.risk_level?.toUpperCase();
+        if (key in counts) counts[key]++;
+      });
+
+      animateCount(dom.countCritical, counts.CRITICO);
+      animateCount(dom.countHigh,     counts.ALTO);
+      animateCount(dom.countMedium,   counts.MEDIO);
+      animateCount(dom.countLow,      counts.BAJO);
+    }
+
+    function animateCount(el, target) {
+      const start   = parseInt(el.textContent) || 0;
+      const diff    = target - start;
+      const steps   = 20;
+      const stepMs  = 20;
+      let step = 0;
+
+      const timer = setInterval(() => {
+        step++;
+        el.textContent = Math.round(start + diff * (step / steps));
+        if (step >= steps) {
+          el.textContent = target;
+          clearInterval(timer);
+        }
+      }, stepMs);
+    }
+
+    /* ============================================================
+       RENDER: TABLE
+    ============================================================ */
+    function renderTable(detections, filter) {
+      const filtered = filter === 'ALL'
+        ? detections
+        : detections.filter(d => d.risk_level?.toUpperCase() === filter);
+
+      dom.tableCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'registro' : 'registros'}`;
+
+      if (filtered.length === 0) {
+        dom.detectionsTbody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="table-empty">
+                <svg class="table-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <div class="table-empty-title">Sin detecciones</div>
+                <div class="table-empty-sub">No hay registros para el filtro seleccionado en las ultimas 24 horas.</div>
+              </div>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      dom.detectionsTbody.innerHTML = filtered.map(d => {
+        const riskClass = normalizeRiskClass(d.risk_level);
+        const mitreTags = (d.mitre_techniques || [])
+          .slice(0, 4)
+          .map(t => `<span class="mitre-tag">${escHtml(t)}</span>`)
+          .join('');
+        const moreMitre = d.mitre_techniques?.length > 4
+          ? `<span class="mitre-tag">+${d.mitre_techniques.length - 4}</span>`
+          : '';
+        const maliciousDot = d.is_known_malicious
+          ? '<span class="malicious-indicator" title="IP conocida maliciosa"></span>'
+          : '';
+        const scoreVal  = d.anomaly_score?.toFixed(4) ?? '—';
+        const scoreColor = (d.anomaly_score < -0.1) ? 'color:var(--critical)' : 'color:var(--text-secondary)';
+
+        return `
+          <tr>
+            <td class="td-ip">${escHtml(d.ip || '—')}${maliciousDot}</td>
+            <td><span class="risk-badge ${riskClass}">${escHtml(d.risk_level || '—')}</span></td>
+            <td>${escHtml(d.country || '??')}</td>
+            <td class="td-score" style="${scoreColor}">${scoreVal}</td>
+            <td><div class="td-mitre">${mitreTags}${moreMitre}</div></td>
+            <td class="td-summary">${escHtml(d.summary || '—')}</td>
+            <td class="td-time">${formatTimestamp(d.created_at)}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function normalizeRiskClass(level) {
+      const l = (level || '').toUpperCase();
+      /* La API devuelve "CRITICO" (sin tilde) según el enum de Python */
+      if (l === 'CRITICO' || l === 'CRÍTICO') return 'CRITICO';
+      if (l === 'ALTO')   return 'ALTO';
+      if (l === 'MEDIO')  return 'MEDIO';
+      if (l === 'BAJO')   return 'BAJO';
+      return l;
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    /* ============================================================
+       RENDER: ANALYSIS RESULT
+    ============================================================ */
+    function renderAnalysisResult(data, success, errorMsg = '') {
+      dom.analysisResult.style.display = 'block';
+
+      if (!success) {
+        dom.resultBadge.className = 'result-badge error';
+        dom.resultBadge.textContent = 'ERROR';
+        dom.resultStats.innerHTML = `
+          <div class="result-stat" style="grid-column:1/-1">
+            <div class="result-stat-value" style="color:var(--critical);font-size:12px;">${escHtml(errorMsg)}</div>
+          </div>`;
+        return;
+      }
+
+      dom.resultBadge.className = 'result-badge success';
+      dom.resultBadge.textContent = 'COMPLETADO';
+
+      dom.resultStats.innerHTML = `
+        <div class="result-stat">
+          <div class="result-stat-value">${data.total_events}</div>
+          <div class="result-stat-label">Eventos</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" style="color:var(--critical)">${data.anomalies_found}</div>
+          <div class="result-stat-label">Anomalias</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value" style="font-size:16px;">${data.duration_seconds?.toFixed(2)}s</div>
+          <div class="result-stat-label">Duracion</div>
+        </div>
+      `;
+    }
+
+    /* ============================================================
+       ANALYZE: UI STATE
+    ============================================================ */
+    function setAnalyzeLoading(loading) {
+      dom.btnAnalyze.disabled = loading;
+      dom.analyzeSpinner.style.display  = loading ? 'block' : 'none';
+      dom.analyzeIcon.style.display     = loading ? 'none' : 'block';
+      dom.analyzeBtnText.textContent    = loading ? 'Analizando...' : 'Analizar CSV';
+    }
+
+    /* ============================================================
+       TIME DISPLAY
+    ============================================================ */
+    function updateTimeDisplay() {
+      dom.updateTimeText.textContent = timeAgo(state.lastUpdated);
+    }
+
+    /* ============================================================
+       AUTO-REFRESH COUNTDOWN
+    ============================================================ */
+    function startRefreshCycle() {
+      if (state.countdownTimer) clearInterval(state.countdownTimer);
+
+      state.refreshCountdown = AUTO_REFRESH_SECONDS;
+      updateProgressBar();
+
+      state.countdownTimer = setInterval(() => {
+        state.refreshCountdown--;
+        updateProgressBar();
+        updateTimeDisplay();
+
+        if (state.refreshCountdown <= 0) {
+          doRefresh();
+          state.refreshCountdown = AUTO_REFRESH_SECONDS;
+        }
+      }, 1000);
+    }
+
+    function updateProgressBar() {
+      const pct = (state.refreshCountdown / AUTO_REFRESH_SECONDS) * 100;
+      dom.refreshBar.style.width = `${pct}%`;
+    }
+
+    /* ============================================================
+       FULL REFRESH
+    ============================================================ */
+    async function doRefresh() {
+      if (state.isLoading) return;
+      state.isLoading = true;
+
+      dom.btnRefresh.classList.add('spinning');
+
+      await Promise.all([fetchStatus(), fetchDetections()]);
+
+      state.isLoading    = false;
+      state.lastUpdated  = Date.now();
+      updateTimeDisplay();
+      dom.btnRefresh.classList.remove('spinning');
+      startRefreshCycle();
+    }
+
+    /* ============================================================
+       FILTER BUTTONS
+    ============================================================ */
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.activeFilter = btn.dataset.filter;
+        renderTable(state.detections, state.activeFilter);
+      });
+    });
+
+    /* ============================================================
+       FILE UPLOAD: DRAG & DROP
+    ============================================================ */
+    const dropZone = dom.dropZone;
+
+    dropZone.addEventListener('click', () => dom.csvInput.click());
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleFileSelect(file);
+    });
+
+    dom.csvInput.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) handleFileSelect(file);
+    });
+
+    function handleFileSelect(file) {
+      if (!file.name.endsWith('.csv')) {
+        showToast('Solo se aceptan archivos .csv', 'error');
+        return;
+      }
+
+      dom.fileSelected.textContent = `${file.name}  (${(file.size / 1024).toFixed(1)} KB)`;
+      dom.fileSelected.style.display = 'block';
+
+      dom.btnAnalyze.disabled = false;
+      dom.analyzeBtnText.textContent = 'Analizar CSV';
+
+      dom.btnAnalyze.onclick = () => runAnalysis(file);
+    }
+
+    /* ============================================================
+       MANUAL REFRESH BUTTON
+    ============================================================ */
+    dom.btnRefresh.addEventListener('click', () => {
+      if (!state.isLoading) {
+        state.refreshCountdown = AUTO_REFRESH_SECONDS;
+        doRefresh();
+      }
+    });
+
+    /* ============================================================
+       INIT
+    ============================================================ */
+    document.addEventListener('DOMContentLoaded', () => {
+      doRefresh();
+      /* Update "hace X segundos" each second even without refresh */
+      setInterval(updateTimeDisplay, 5000);
+    });
+  </script>
+
+</body>
+</html>
