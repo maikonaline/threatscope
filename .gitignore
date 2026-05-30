@@ -1,0 +1,55 @@
+# Entorno Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Entornos virtuales
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Variables de entorno (contienen secretos)
+.env.local
+.env.production
+
+# Datos generados en runtime (no versionar)
+data/
+logs/
+models/
+
+# Base de datos local
+*.db
+*.sqlite
+*.sqlite3
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.bak
+temp/
+tmp/
+
+# Archivos comprimidos (el .tar.gz ya no es necesario con Git)
+*.tar.gz
+*.zip
