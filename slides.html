@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThreatScope — Presentacion</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.0/dist/theme/black.css" />
+  <style>
+    /* ── Variables de color ── */
+    :root {
+      --bg:        #0a0e1a;
+      --bg2:       #0f1525;
+      --green:     #00ff88;
+      --red:       #ff4444;
+      --orange:    #ff8c00;
+      --yellow:    #ffd600;
+      --blue:      #4488ff;
+      --dim:       #8899aa;
+      --border:    #1e2d40;
+      --text:      #d0dce8;
+    }
+
+    /* ── Override reveal.js base ── */
+    .reveal-viewport { background: var(--bg); }
+    .reveal .slides   { font-family: 'Segoe UI', system-ui, sans-serif; color: var(--text); }
+    .reveal .slides section { text-align: left; }
+
+    h1, h2, h3, h4 { font-family: 'Segoe UI', system-ui, sans-serif; color: var(--green) !important; margin-bottom: 0.4em; }
+    h1 { font-size: 2.2em; letter-spacing: 0.04em; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
+    h3 { font-size: 1.1em; color: var(--blue) !important; }
+
+    code, pre, .mono { font-family: 'Courier New', Consolas, monospace; }
+
+    /* ── Componentes reutilizables ── */
+    .badge {
+      display: inline-block;
+      padding: 0.15em 0.6em;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.75em;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+    }
+    .badge-red    { background: rgba(255,68,68,0.2);  color: var(--red);    border: 1px solid var(--red); }
+    .badge-orange { background: rgba(255,140,0,0.2);  color: var(--orange); border: 1px solid var(--orange); }
+    .badge-yellow { background: rgba(255,214,0,0.2);  color: var(--yellow); border: 1px solid var(--yellow); }
+    .badge-green  { background: rgba(0,255,136,0.2);  color: var(--green);  border: 1px solid var(--green); }
+    .badge-blue   { background: rgba(68,136,255,0.2); color: var(--blue);   border: 1px solid var(--blue); }
+    .badge-dim    { background: rgba(136,153,170,0.15); color: var(--dim);  border: 1px solid var(--dim); }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8em 1em;
+    }
+    .card-red    { border-color: var(--red);    background: rgba(255,68,68,0.06); }
+    .card-green  { border-color: var(--green);  background: rgba(0,255,136,0.06); }
+    .card-blue   { border-color: var(--blue);   background: rgba(68,136,255,0.06); }
+    .card-orange { border-color: var(--orange); background: rgba(255,140,0,0.06); }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8em; }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+      flex-wrap: wrap;
+      margin: 0.6em 0;
+    }
+    .flow-node {
+      background: var(--bg2);
+      border: 1px solid var(--green);
+      border-radius: 6px;
+      padding: 0.4em 0.8em;
+      font-family: monospace;
+      font-size: 0.75em;
+      color: var(--green);
+    }
+    .flow-arrow { color: var(--dim); font-size: 1.2em; }
+
+    .pill-row { display: flex; gap: 0.5em; flex-wrap: wrap; margin: 0.4em 0; }
+
+    pre.code-block {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.8em 1em;
+      font-size: 0.58em;
+      line-height: 1.6;
+      color: var(--text);
+      overflow: auto;
+      margin: 0;
+    }
+    pre.code-block .hi  { color: var(--green); }
+    pre.code-block .hi2 { color: var(--blue); }
+    pre.code-block .hi3 { color: var(--orange); }
+    pre.code-block .dim { color: var(--dim); }
+
+    table.ts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.7em;
+      margin-top: 0.6em;
+    }
+    table.ts-table th {
+      background: var(--bg2);
+      color: var(--green);
+      border: 1px solid var(--border);
+      padding: 0.4em 0.6em;
+      text-align: left;
+    }
+    table.ts-table td {
+      border: 1px solid var(--border);
+      padding: 0.35em 0.6em;
+      vertical-align: top;
+    }
+    table.ts-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .link-btn {
+      display: inline-block;
+      padding: 0.3em 0.9em;
+      border: 1px solid var(--green);
+      border-radius: 5px;
+      color: var(--green);
+      text-decoration: none;
+      font-family: monospace;
+      font-size: 0.75em;
+      background: rgba(0,255,136,0.07);
+      transition: background 0.2s;
+    }
+    .link-btn:hover { background: rgba(0,255,136,0.18); }
+
+    .stat-box {
+      text-align: center;
+      padding: 0.6em 0.4em;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .stat-num { font-size: 1.8em; font-weight: bold; color: var(--green); font-family: monospace; display: block; }
+    .stat-lbl { font-size: 0.65em; color: var(--dim); }
+
+    .risk-bar {
+      height: 6px;
+      border-radius: 3px;
+      margin-top: 0.3em;
+    }
+
+    .scenario-card {
+      border-radius: 8px;
+      padding: 0.8em 1em;
+      font-size: 0.8em;
+    }
+
+    .integration-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7em;
+      margin-top: 0.6em;
+    }
+    .int-card {
+      display: flex;
+      align-items: center;
+      gap: 0.6em;
+      padding: 0.6em 0.9em;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.8em;
+    }
+    .int-icon { font-size: 1.4em; }
+    .int-name { font-weight: bold; color: var(--text); }
+    .int-status { font-size: 0.7em; }
+
+    .phase-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7em;
+      margin-top: 0.6em;
+    }
+    .phase-card {
+      background: var(--bg2);
+      border-radius: 8px;
+      padding: 0.8em;
+      font-size: 0.7em;
+    }
+    .phase-title {
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-bottom: 0.4em;
+    }
+    .phase-item { color: var(--dim); line-height: 1.6; }
+
+    .qr-placeholder {
+      width: 120px;
+      height: 120px;
+      background: var(--bg2);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6em;
+      color: var(--dim);
+      text-align: center;
+      padding: 0.5em;
+    }
+
+    /* ── Portada ── */
+    #slide-cover { text-align: center; }
+    #slide-cover h1 { font-size: 3.2em; letter-spacing: 0.08em; color: var(--green) !important; margin-bottom: 0.1em; }
+    #slide-cover .tagline { font-size: 1em; color: var(--dim); margin-bottom: 1em; }
+    #slide-cover .shield  { font-size: 4em; display: block; margin-bottom: 0.3em; }
+    #slide-cover .candidate { font-size: 0.85em; color: var(--text); margin-bottom: 1em; }
+    #slide-cover .links-row { display: flex; justify-content: center; gap: 0.8em; flex-wrap: wrap; }
+
+    /* ── Reveal overrides ── */
+    .reveal .progress { color: var(--green); }
+    .reveal .controls { color: var(--green); }
+    .reveal .slide-number { color: var(--dim); font-family: monospace; font-size: 0.75em; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================================
+     SLIDE 1 — PORTADA
+     ============================================================ -->
+<section id="slide-cover">
+  <span class="shield">&#x1F6E1;&#xFE0F;</span>
+  <h1>ThreatScope</h1>
+  <p class="tagline">Sistema de Deteccion de Amenazas en Tiempo Real</p>
+  <p class="candidate">
+    <span style="color:var(--dim)">Candidato:</span>
+    <strong style="color:var(--text)">[Tu Nombre]</strong>
+    &nbsp;&mdash;&nbsp;
+    <span style="color:var(--dim)">Junior Cybersecurity Engineer</span>
+  </p>
+  <div class="links-row">
+    <a class="link-btn" href="https://threatscope-three.vercel.app" target="_blank">Dashboard</a>
+    <a class="link-btn" href="https://threatscope-uoza.onrender.com/docs" target="_blank">API / Swagger</a>
+    <a class="link-btn" href="https://github.com/maikonaline/threatscope" target="_blank">GitHub</a>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 2 — EL PROBLEMA
+     ============================================================ -->
+<section>
+  <h2>El problema que resuelve</h2>
+  <div class="grid2" style="margin-top:0.6em">
+
+    <div class="card card-red" style="font-size:0.78em">
+      <h3 style="color:var(--red) !important; margin-top:0">Sin ThreatScope</h3>
+      <ul style="margin:0; padding-left:1.2em; line-height:1.8">
+        <li>537 intentos de login a las 3am &mdash; nadie lo ve hasta el dia siguiente</li>
+        <li>Nodo Tor haciendo 531 fallos de autenticacion &mdash; el firewall no lo detecta</li>
+        <li>1.85 GB descargados fuera de horario &mdash; backup legitimo o exfiltracion?</li>
+        <li>Analista SOC revisando 10.000 eventos manualmente</li>
+        <li>Alerta por email al dia siguiente cuando ya es tarde</li>
+      </ul>
+    </div>
+
+    <div class="card card-green" style="font-size:0.78em">
+      <h3 style="color:var(--green) !important; margin-top:0">Con ThreatScope</h3>
+      <ul style="margin:0; padding-left:1.2em; line-height:1.8">
+        <li>Analisis automatizado de cada batch de eventos</li>
+        <li>Isolation Forest detecta patrones anomalos, no solo firmas conocidas</li>
+        <li>AbuseIPDB confirma si la IP tiene historial real de ataques</li>
+        <li>5 alertas priorizadas CRITICO/ALTO &mdash; no 10.000 eventos</li>
+        <li>Alerta Slack en tiempo real con tecnica MITRE incluida</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div style="margin-top:0.8em">
+    <table class="ts-table">
+      <tr>
+        <th>Problema real</th>
+        <th>Lo que hace ThreatScope</th>
+      </tr>
+      <tr><td>Logs no monitoreados 24/7</td><td>Analisis automatizado de cada evento</td></tr>
+      <tr><td>No se sabe si una IP es maliciosa</td><td>AbuseIPDB: reputacion 0-100 en tiempo real</td></tr>
+      <tr><td>Falsos positivos desperdician tiempo</td><td>Score combinado ML + reputacion filtra ruido</td></tr>
+      <tr><td>Analista no sabe que tecnica usa el atacante</td><td>MITRE ATT&amp;CK mapea el comportamiento observado</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 3 — LA SOLUCION EN 30 SEGUNDOS
+     ============================================================ -->
+<section>
+  <h2>La solucion en 30 segundos</h2>
+
+  <div class="flow" style="justify-content:center; margin:1em 0; flex-wrap:nowrap">
+    <div class="flow-node" style="font-size:0.9em; padding:0.6em 1em">CSV de logs</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="font-size:0.9em; padding:0.6em 1em">Isolation Forest<br><span style="color:var(--dim);font-size:0.8em">anomaly detection</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="font-size:0.9em; padding:0.6em 1em">AbuseIPDB<br><span style="color:var(--dim);font-size:0.8em">threat intel</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="font-size:0.9em; padding:0.6em 1em">MITRE ATT&amp;CK<br><span style="color:var(--dim);font-size:0.8em">clasificacion</span></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-node" style="border-color:var(--orange); color:var(--orange); font-size:0.9em; padding:0.6em 1em">Alerta Slack<br><span style="color:var(--dim);font-size:0.8em">automatica</span></div>
+  </div>
+
+  <div style="text-align:center; margin:1em 0">
+    <span style="font-size:1.6em; color:var(--green); font-weight:bold;">
+      &ldquo;De log a alerta en menos de 3 segundos&rdquo;
+    </span>
+  </div>
+
+  <div class="grid3" style="margin-top:0.8em">
+    <div class="stat-box">
+      <span class="stat-num">5</span>
+      <span class="stat-lbl">features ML<br>intentos, fallos, bytes, horas, puertos</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num">100%</span>
+      <span class="stat-lbl">automatico<br>sin intervencion humana</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num">38</span>
+      <span class="stat-lbl">tests pasando<br>unit + integracion + e2e</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 4 — DEMO EN VIVO
+     ============================================================ -->
+<section>
+  <h2>Demo en vivo &mdash; resultado real</h2>
+
+  <div class="card card-red" style="font-size:0.82em; margin-bottom:0.8em">
+    <div style="display:flex; align-items:center; gap:0.8em; margin-bottom:0.6em">
+      <span style="font-size:1.8em">&#x26A0;&#xFE0F;</span>
+      <div>
+        <span class="badge badge-red" style="font-size:1em">CRITICO</span>
+        &nbsp;
+        <code style="color:var(--green); font-size:1.1em">185.220.101.5</code>
+        &nbsp;
+        <span style="color:var(--dim); font-size:0.85em">Nodo Tor &mdash; Alemania</span>
+      </div>
+    </div>
+    <div class="grid2" style="gap:0.6em">
+      <div>
+        <div style="color:var(--dim); font-size:0.75em; margin-bottom:0.2em">Score ML (Isolation Forest)</div>
+        <div><code style="color:var(--red)">-0.45</code> &nbsp;<span style="color:var(--dim); font-size:0.8em">muy anomalo &mdash; 537 intentos, 531 fallos</span></div>
+        <div class="risk-bar" style="width:90%; background:var(--red)"></div>
+      </div>
+      <div>
+        <div style="color:var(--dim); font-size:0.75em; margin-bottom:0.2em">AbuseIPDB Reputation</div>
+        <div><code style="color:var(--red)">100 / 100</code> &nbsp;<span style="color:var(--dim); font-size:0.8em">cientos de reportes activos</span></div>
+        <div class="risk-bar" style="width:100%; background:var(--red)"></div>
+      </div>
+    </div>
+    <div style="margin-top:0.6em">
+      <div style="color:var(--dim); font-size:0.75em; margin-bottom:0.2em">Tecnicas MITRE ATT&amp;CK mapeadas</div>
+      <div class="pill-row">
+        <span class="badge badge-red">T1110 &mdash; Brute Force</span>
+        <span class="badge badge-orange">T1078 &mdash; Valid Accounts</span>
+        <span class="badge badge-blue">T1090.003 &mdash; Tor Proxy</span>
+      </div>
+    </div>
+    <div style="margin-top:0.6em; padding:0.5em 0.8em; background:rgba(0,0,0,0.3); border-radius:5px; font-size:0.82em">
+      <span style="color:var(--dim)">Score combinado:</span>
+      <code style="color:var(--red)"> |&minus;0.45| &times; 200 + 100 = 190</code>
+      <span style="color:var(--dim)"> &rarr; umbral CRITICO &gt; 110</span>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; gap:0.6em; font-size:0.78em">
+    <span style="font-size:1.3em">&#x1F4F2;</span>
+    <span style="color:var(--green)"><strong>Alerta enviada a Slack automaticamente.</strong></span>
+    <span style="color:var(--dim)">Sin intervencion humana. Pipeline completo en &lt; 3 seg.</span>
+  </div>
+  <div style="margin-top:0.6em">
+    <a class="link-btn" href="https://threatscope-three.vercel.app" target="_blank">Ver dashboard en vivo</a>
+    &nbsp;
+    <a class="link-btn" href="https://threatscope-uoza.onrender.com/docs" target="_blank">Swagger / POST /analyze</a>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 5 — ARQUITECTURA
+     ============================================================ -->
+<section>
+  <h2>Arquitectura del sistema</h2>
+
+  <pre class="code-block">
+<span class="hi">CSV de trafico de red</span>  (ip, intentos_login, fallos_login, bytes, horas, puertos)
+         |
+         v
+<span class="hi2">POST /analyze</span>  (FastAPI &mdash; api.py)
+         |
+         v
+<span class="hi">pipeline.py</span>  [ORQUESTADOR &mdash; metodo run() end-to-end]
+    |
+    |-- 1. <span class="hi2">Ingesta y validacion</span> de columnas
+    |
+    |-- 2. <span class="hi">analyzer.py</span>  [MOTOR ML]
+    |         IsolationForest.fit() sobre el batch actual
+    |         predict() &rarr; -1 anomalia / 1 normal
+    |         Solo IPs anomalas pasan al siguiente paso
+    |
+    |-- 3. <span class="hi">threat_intel.py</span>  [ENRIQUECIMIENTO]
+    |         AbuseIPDB &rarr; reputacion 0-100 + reportes
+    |         MITRE map() &rarr; tecnicas segun comportamiento
+    |         score_combinado = (|anomaly_score| x 200) + reputation
+    |
+    |-- 4. <span class="hi2">database.py</span>  [PERSISTENCIA]
+    |         SQLAlchemy ORM &rarr; tabla detections + analysis_batches
+    |
+    |-- 5. <span class="hi">notifier.py</span>  [ALERTAS &mdash; fallo silencioso]
+              Slack webhook &rarr; #alertas-seguridad
+              Splunk HEC / Microsoft Sentinel / Teams (listos)
+         |
+         v
+<span class="hi2">dashboard.html</span>  (Vercel &mdash; auto-refresh 30s, Chart.js)
+</pre>
+
+  <div style="display:flex; gap:0.5em; flex-wrap:wrap; margin-top:0.6em; font-size:0.72em">
+    <span class="badge badge-green">config.py &mdash; env vars</span>
+    <span class="badge badge-green">logger.py &mdash; rotacion 10MB</span>
+    <span class="badge badge-blue">tests.py &mdash; 38 tests</span>
+    <span class="badge badge-blue">Dockerfile</span>
+    <span class="badge badge-blue">render.yaml</span>
+    <span class="badge badge-blue">vercel.json</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 6 — MACHINE LEARNING
+     ============================================================ -->
+<section>
+  <h2>Machine Learning &mdash; Isolation Forest</h2>
+
+  <div class="grid2" style="margin-top:0.6em; gap:0.8em">
+
+    <div>
+      <h3>Como funciona (version simple)</h3>
+      <div class="card" style="font-size:0.78em; line-height:1.7">
+        Construye arboles de decision <strong>aleatorios</strong>.
+        Un punto <strong>normal</strong> necesita muchas particiones para quedar aislado
+        (esta rodeado de otros puntos normales).
+        Un punto <strong>anomalo</strong> queda aislado en pocas particiones
+        porque esta solo en el espacio de features.
+        <br><br>
+        <code style="color:var(--green)">score mas negativo &rarr; mas raro &rarr; mas anomalo</code>
+      </div>
+
+      <h3 style="margin-top:0.8em">Por que no supervisado</h3>
+      <div class="card" style="font-size:0.78em; line-height:1.7">
+        Los modelos supervisados necesitan datos etiquetados
+        ("esto es ataque, esto no"). En ciberseguridad esos datos
+        no existen o estan desactualizados. Isolation Forest
+        <strong>solo necesita trafico normal para aprender</strong>
+        &mdash; y detecta cualquier desviacion, incluso ataques
+        nunca vistos antes (zero-days).
+      </div>
+    </div>
+
+    <div>
+      <h3>Reglas fijas vs ML adaptativo</h3>
+      <table class="ts-table">
+        <tr>
+          <th>Reglas fijas (IDS tradicional)</th>
+          <th>Isolation Forest (ThreatScope)</th>
+        </tr>
+        <tr>
+          <td>Detecta ataques conocidos</td>
+          <td>Detecta cualquier anomalia</td>
+        </tr>
+        <tr>
+          <td>Necesita actualizacion manual</td>
+          <td>Se reentrena con nuevos datos</td>
+        </tr>
+        <tr>
+          <td>Cero falsos positivos para firmas conocidas</td>
+          <td>Puede generar falsos positivos &mdash; mitigado con reputacion</td>
+        </tr>
+        <tr>
+          <td>Ciego a zero-days</td>
+          <td>Detecta comportamiento inusual desconocido</td>
+        </tr>
+      </table>
+
+      <div class="card card-blue" style="font-size:0.72em; margin-top:0.7em">
+        <strong>Configuracion en ThreatScope:</strong><br>
+        <code>contamination = 0.05</code> &mdash; espera ~5% de anomalias por batch<br>
+        <code>n_estimators = 100</code> &mdash; arboles de aislamiento<br>
+        Features: <code>intentos_login, fallos_login, bytes_descargados,<br>horas_actividad, puertos_distintos</code>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 7 — THREAT INTELLIGENCE
+     ============================================================ -->
+<section>
+  <h2>Threat Intelligence</h2>
+
+  <div class="grid2" style="margin-top:0.6em; gap:0.8em">
+
+    <div>
+      <h3>AbuseIPDB</h3>
+      <div class="card" style="font-size:0.78em; line-height:1.7">
+        Base de datos colaborativa donde la comunidad de seguridad
+        reporta IPs maliciosas. Cualquier empresa puede reportar
+        "esta IP nos ataco" y cualquier empresa puede consultar
+        "esta IP tiene historial de ataques?".
+        <br><br>
+        Devuelve: <code style="color:var(--green)">abuseConfidenceScore</code> (0-100),
+        <code style="color:var(--green)">totalReports</code>,
+        <code style="color:var(--green)">countryCode</code>.
+        <br><br>
+        <strong>185.220.101.5:</strong> score <code style="color:var(--red)">100/100</code>,
+        cientos de reportes como nodo Tor. Verificable ahora mismo en abuseipdb.com.
+      </div>
+    </div>
+
+    <div>
+      <h3>MITRE ATT&amp;CK</h3>
+      <div class="card" style="font-size:0.78em; line-height:1.7; margin-bottom:0.6em">
+        Enciclopedia publica y gratuita de todas las tecnicas que
+        usan los atacantes reales. Cada tecnica tiene un codigo,
+        documentacion de como funciona, y mitigaciones recomendadas.
+        <br><br>
+        Convierte "actividad sospechosa" en
+        <strong>"T1110 Brute Force &mdash; Credential Access &mdash;
+        mitigacion: MFA + rate limiting"</strong>.
+      </div>
+
+      <table class="ts-table">
+        <tr><th>ID</th><th>Nombre</th><th>Cuando se mapea</th></tr>
+        <tr>
+          <td><span class="badge badge-red">T1110</span></td>
+          <td>Brute Force</td>
+          <td>fallos_login &gt; 30</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-orange">T1046</span></td>
+          <td>Port Scanning</td>
+          <td>puertos &gt; 15</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-yellow">T1041</span></td>
+          <td>Exfiltration C2</td>
+          <td>bytes &gt; 100.000</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">T1078</span></td>
+          <td>Valid Accounts</td>
+          <td>actividad &lt;6am o &gt;22h</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-dim">T1090.003</span></td>
+          <td>Tor Proxy</td>
+          <td>IP nodo Tor</td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 8 — INTEGRACIONES SIEM
+     ============================================================ -->
+<section>
+  <h2>Integraciones SIEM y notificaciones</h2>
+
+  <div class="integration-grid">
+    <div class="int-card" style="border-color:var(--green)">
+      <span class="int-icon">&#x1F4F2;</span>
+      <div>
+        <div class="int-name">Slack</div>
+        <div class="int-status"><span class="badge badge-green">ACTIVO EN PRODUCCION</span></div>
+        <div style="font-size:0.72em; color:var(--dim); margin-top:0.2em">Webhook &rarr; #alertas-seguridad</div>
+      </div>
+    </div>
+    <div class="int-card">
+      <span class="int-icon">&#x1F4CA;</span>
+      <div>
+        <div class="int-name">Splunk HEC</div>
+        <div class="int-status"><span class="badge badge-yellow">CODIGO LISTO</span></div>
+        <div style="font-size:0.72em; color:var(--dim); margin-top:0.2em">HTTP Event Collector implementado en notifier.py</div>
+      </div>
+    </div>
+    <div class="int-card">
+      <span class="int-icon">&#x1F6E1;&#xFE0F;</span>
+      <div>
+        <div class="int-name">Microsoft Sentinel</div>
+        <div class="int-status"><span class="badge badge-yellow">CODIGO LISTO</span></div>
+        <div style="font-size:0.72em; color:var(--dim); margin-top:0.2em">Data Connector API implementada</div>
+      </div>
+    </div>
+    <div class="int-card">
+      <span class="int-icon">&#x1F4AC;</span>
+      <div>
+        <div class="int-name">Microsoft Teams</div>
+        <div class="int-status"><span class="badge badge-yellow">CODIGO LISTO</span></div>
+        <div style="font-size:0.72em; color:var(--dim); margin-top:0.2em">Webhook identico a Slack</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-blue" style="margin-top:0.8em; font-size:0.8em; line-height:1.6">
+    <strong>Que es un webhook:</strong>
+    Una URL que el servicio destino (Slack, Teams) te proporciona.
+    Tu sistema hace un POST con un JSON y el mensaje aparece en el canal.
+    Sin SDK, sin autenticacion compleja &mdash; solo HTTP.
+  </div>
+
+  <div style="margin-top:0.7em; padding:0.6em 1em; background:rgba(0,255,136,0.06); border-left:3px solid var(--green); border-radius:4px; font-size:0.82em">
+    <strong style="color:var(--green)">"ThreatScope no reemplaza al SIEM &mdash; lo alimenta con inteligencia."</strong><br>
+    <span style="color:var(--dim)">Automatiza el primer nivel de triage: entrega 5 alertas CRITICO/ALTO ya enriquecidas, no 10.000 eventos en bruto.</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 9 — STACK TECNOLOGICO
+     ============================================================ -->
+<section>
+  <h2>Stack tecnologico</h2>
+
+  <table class="ts-table" style="margin-top:0.4em">
+    <tr>
+      <th>Capa</th>
+      <th>Tecnologia</th>
+      <th>Por que se eligio</th>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">Backend</span></td>
+      <td><strong>Python 3.11 + FastAPI</strong></td>
+      <td>Ecosistema ML/datos sin rival. Swagger automatico. Async nativo.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">ML</span></td>
+      <td><strong>scikit-learn &mdash; Isolation Forest</strong></td>
+      <td>Libreria de referencia. No supervisado: no necesita ataques etiquetados.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">Datos</span></td>
+      <td><strong>pandas + SQLAlchemy</strong></td>
+      <td>pandas para CSV. SQLAlchemy agnóstico a BD: SQLite dev &rarr; PostgreSQL prod sin cambiar codigo.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-orange">Threat Intel</span></td>
+      <td><strong>AbuseIPDB + MITRE ATT&amp;CK</strong></td>
+      <td>Reputacion real de la comunidad + framework estandar de la industria.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">Frontend</span></td>
+      <td><strong>HTML/CSS/JS vanilla + Chart.js</strong></td>
+      <td>Cero dependencias de build. Deploy en Vercel como archivo estatico en 10 seg.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-dim">DevOps</span></td>
+      <td><strong>Docker + Render.com + Vercel</strong></td>
+      <td>Docker para portabilidad. Render para backend Python. Vercel para frontend. Todo en free tier.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-dim">Tests</span></td>
+      <td><strong>pytest &mdash; 38 tests</strong></td>
+      <td>Unit + integracion + e2e. Mocks para AbuseIPDB (sin llamadas reales en CI). 100% pasando.</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ============================================================
+     SLIDE 10 — ESCENARIOS DE DEMO
+     ============================================================ -->
+<section>
+  <h2>Datos de demo &mdash; 3 escenarios preparados</h2>
+
+  <div style="display:flex; flex-direction:column; gap:0.7em; margin-top:0.6em">
+
+    <div class="scenario-card card-red" style="border:1px solid var(--red)">
+      <div style="display:flex; align-items:flex-start; gap:0.8em">
+        <span style="font-size:1.8em">&#x1F534;</span>
+        <div style="font-size:0.8em">
+          <div><strong style="color:var(--red)">ataque_fuerza_bruta.csv</strong> &nbsp;&mdash;&nbsp; Nivel: CRITICO</div>
+          <div style="color:var(--dim); margin-top:0.2em">IP: <code>185.220.101.5</code> (nodo Tor real, Alemania) &nbsp;&mdash;&nbsp; 537 intentos de login, 531 fallos en una hora</div>
+          <div class="pill-row" style="margin-top:0.3em">
+            <span class="badge badge-red">T1110 Brute Force</span>
+            <span class="badge badge-orange">T1078 Valid Accounts</span>
+            <span class="badge badge-blue">T1090.003 Tor</span>
+          </div>
+          <div style="color:var(--dim); font-size:0.85em; margin-top:0.2em">Demuestra: credential stuffing + enriquecimiento AbuseIPDB 100/100</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scenario-card card-orange" style="border:1px solid var(--orange)">
+      <div style="display:flex; align-items:flex-start; gap:0.8em">
+        <span style="font-size:1.8em">&#x1F7E0;</span>
+        <div style="font-size:0.8em">
+          <div><strong style="color:var(--orange)">escaneo_puertos.csv</strong> &nbsp;&mdash;&nbsp; Nivel: ALTO</div>
+          <div style="color:var(--dim); margin-top:0.2em">IP: <code>80.82.77.33</code> (Shodan scanner conocido) &nbsp;&mdash;&nbsp; 74 puertos distintos explorados</div>
+          <div class="pill-row" style="margin-top:0.3em">
+            <span class="badge badge-orange">T1046 Network Service Scanning</span>
+          </div>
+          <div style="color:var(--dim); font-size:0.85em; margin-top:0.2em">Demuestra: deteccion de reconnaissance / reconocimiento previo al ataque</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scenario-card card-orange" style="border:1px solid var(--yellow)">
+      <div style="display:flex; align-items:flex-start; gap:0.8em">
+        <span style="font-size:1.8em">&#x1F7E1;</span>
+        <div style="font-size:0.8em">
+          <div><strong style="color:var(--yellow)">exfiltracion_datos.csv</strong> &nbsp;&mdash;&nbsp; Nivel: ALTO</div>
+          <div style="color:var(--dim); margin-top:0.2em">IP interna sospechosa &nbsp;&mdash;&nbsp; 1.85 GB descargados a las 3am, horario completamente anomalo</div>
+          <div class="pill-row" style="margin-top:0.3em">
+            <span class="badge badge-yellow">T1041 Exfiltration Over C2</span>
+            <span class="badge badge-blue">T1078 Valid Accounts (horario)</span>
+          </div>
+          <div style="color:var(--dim); font-size:0.85em; margin-top:0.2em">Demuestra: deteccion por horario anomalo + volumen inusual</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 11 — DE DEMO A PRODUCCION
+     ============================================================ -->
+<section>
+  <h2>De demo a produccion</h2>
+
+  <div class="phase-grid">
+
+    <div class="phase-card" style="border:1px solid var(--green)">
+      <div class="phase-title" style="color:var(--green)">Demo (ahora)</div>
+      <div style="margin-bottom:0.5em"><span class="badge badge-green">$0/mes</span></div>
+      <div class="phase-item">CSV manual &rarr; API REST</div>
+      <div class="phase-item">SQLite (archivo local)</div>
+      <div class="phase-item">Render free tier</div>
+      <div class="phase-item">Vercel free tier</div>
+      <div class="phase-item">Slack webhook</div>
+      <div class="phase-item" style="margin-top:0.5em; color:var(--dim)">Decenas de eventos/batch</div>
+    </div>
+
+    <div class="phase-card" style="border:1px solid var(--blue)">
+      <div class="phase-title" style="color:var(--blue)">MVP produccion</div>
+      <div style="margin-bottom:0.5em"><span class="badge badge-blue">$50-100/mes</span></div>
+      <div class="phase-item">SQLite &rarr; PostgreSQL + indices</div>
+      <div class="phase-item">API key authentication</div>
+      <div class="phase-item">uvicorn multi-worker</div>
+      <div class="phase-item">Secrets manager</div>
+      <div class="phase-item">Splunk / Sentinel activos</div>
+      <div class="phase-item" style="margin-top:0.5em; color:var(--dim)">Miles de eventos, batches paralelos</div>
+    </div>
+
+    <div class="phase-card" style="border:1px solid var(--orange)">
+      <div class="phase-title" style="color:var(--orange)">Escala enterprise</div>
+      <div style="margin-bottom:0.5em"><span class="badge badge-orange">Variable</span></div>
+      <div class="phase-item">CSV &rarr; Kafka streaming</div>
+      <div class="phase-item">Agente Logstash en firewall</div>
+      <div class="phase-item">Reentrenamiento continuo</div>
+      <div class="phase-item">SHAP para explicabilidad</div>
+      <div class="phase-item">Feedback loop analista</div>
+      <div class="phase-item">Jira / ServiceNow tickets</div>
+      <div class="phase-item" style="margin-top:0.5em; color:var(--dim)">Latencia &lt; 1 segundo</div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:0.8em; font-size:0.78em; color:var(--dim)">
+    La arquitectura modular actual (responsabilidad unica por modulo, fallbacks disenados, fallo silencioso en notificaciones)
+    refleja un sistema pensado para crecer &mdash; no solo para funcionar en demo.
+  </div>
+</section>
+
+<!-- ============================================================
+     SLIDE 12 — LINKS Y CONTACTO
+     ============================================================ -->
+<section>
+  <h2>Links del proyecto</h2>
+
+  <div class="grid2" style="margin-top:0.6em; gap:0.8em">
+
+    <div>
+      <div style="display:flex; flex-direction:column; gap:0.6em">
+        <div class="card" style="font-size:0.8em">
+          <div style="color:var(--dim); font-size:0.75em; margin-bottom:0.3em">Dashboard en produccion</div>
+          <a class="link-btn" href="https://threatscope-three.vercel.app" target="_blank" style="font-size:0.9em">
+            threatscope-three.vercel.app
+          </a>
+        </div>
+        <div class="card" style="font-size:0.8em">
+          <div style="color:var(--dim); font-size:0.75em; margin-bottom:0.3em">API Backend + Swagger UI</div>
+          <a class="link-btn" href="https://threatscope-uoza.onrender.com/docs" target="_blank" style="font-size:0.9em">
+            threatscope-uoza.onrender.com/docs
+          </a>
+        </div>
+        <div class="card" style="font-size:0.8em">
+          <div style="color:var(--dim); font-size:0.75em; margin-bottom:0.3em">Codigo fuente</div>
+          <a class="link-btn" href="https://github.com/maikonaline/threatscope" target="_blank" style="font-size:0.9em">
+            github.com/maikonaline/threatscope
+          </a>
+        </div>
+        <div class="card" style="font-size:0.8em">
+          <div style="color:var(--dim); font-size:0.75em; margin-bottom:0.3em">Esta presentacion</div>
+          <a class="link-btn" href="https://threatscope-three.vercel.app/slides" target="_blank" style="font-size:0.9em">
+            threatscope-three.vercel.app/slides
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1em">
+      <div class="qr-placeholder">
+        [QR al dashboard]
+      </div>
+      <div style="font-size:0.75em; color:var(--dim); text-align:center">
+        threatscope-three.vercel.app
+      </div>
+    </div>
+
+  </div>
+
+  <div style="text-align:center; margin-top:1.2em">
+    <div style="font-size:1.4em; color:var(--green); font-weight:bold; margin-bottom:0.3em">
+      Gracias &mdash; preguntas?
+    </div>
+    <div style="font-size:0.78em; color:var(--dim)">
+      38 tests pasando &bull; Deploy en produccion &bull; Codigo abierto en GitHub
+    </div>
+  </div>
+</section>
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    transition: 'slide',
+    backgroundTransition: 'fade',
+    slideNumber: 'c/t',
+    progress: true,
+    controls: true,
+    controlsLayout: 'bottom-right',
+    keyboard: true,
+    center: false,
+    width: 1200,
+    height: 700,
+    margin: 0.04,
+    minScale: 0.2,
+    maxScale: 2.0
+  });
+</script>
+</body>
+</html>
