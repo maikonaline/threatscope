@@ -2211,6 +2211,8 @@
     let simCount    = 0;
     let simCrit     = 0;
     let simHighN    = 0;
+    let simMed      = 0;
+    let simLow      = 0;
     let simIdx      = 0;
 
     function toggleSimulation() {
@@ -2239,10 +2241,18 @@
         simCount++;
         if (ev.risk === 'CRITICO') simCrit++;
         if (ev.risk === 'ALTO')    simHighN++;
+        if (ev.risk === 'MEDIO')   simMed++;
+        if (ev.risk === 'BAJO')    simLow++;
 
         document.getElementById('sim-count').textContent = simCount;
         document.getElementById('sim-crit').textContent  = simCrit;
         document.getElementById('sim-high').textContent  = simHighN;
+
+        /* Actualizar los contadores principales del dashboard */
+        animateCount(dom.countCritical, simCrit);
+        animateCount(dom.countHigh,     simHighN);
+        animateCount(dom.countMedium,   simMed);
+        animateCount(dom.countLow,      simLow);
 
         const now = new Date().toLocaleTimeString('es-ES', { hour12: false });
         const row = document.createElement('div');
@@ -2271,6 +2281,8 @@
     function stopSimulation() {
       simRunning = false;
       clearTimeout(simTimer);
+      simCount = 0; simCrit = 0; simHighN = 0; simMed = 0; simLow = 0; simIdx = 0;
+
       const btn = document.getElementById('btn-sim-toggle');
       const dot = document.getElementById('sim-dot');
       btn.textContent = '▶ INICIAR';
@@ -2278,6 +2290,13 @@
       btn.style.borderColor = 'rgba(59,130,246,.3)';
       btn.style.color = 'var(--accent-blue)';
       dot.classList.remove('active');
+
+      /* Restaurar contadores con datos reales del backend */
+      renderMetrics(state.detections);
+
+      const feed = document.getElementById('sim-feed');
+      feed.innerHTML = '<div id="sim-placeholder" style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">Presiona INICIAR para simular la monitorización de red en tiempo real</div>';
+      document.getElementById('sim-stats').style.display = 'none';
     }
 
     /* ============================================================
