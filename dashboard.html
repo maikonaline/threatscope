@@ -1188,6 +1188,41 @@
         </div>
       </div>
 
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px;color:var(--accent-blue);letter-spacing:.8px;margin-bottom:10px;">TESTS AUTOMATIZADOS &mdash; 48 tests</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 10px;">
+            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;">config.py</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">4 tests &mdash; Settings, URLs BD, validaciones</div>
+          </div>
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 10px;">
+            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;">analyzer.py</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">8 tests &mdash; Isolation Forest, predicciones, SHAP</div>
+          </div>
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 10px;">
+            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;">threat_intel.py</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">10 tests &mdash; MITRE mapping, AbuseIPDB, niveles</div>
+          </div>
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 10px;">
+            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;">database.py</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">3 tests &mdash; CRUD detecciones, batch, estad&iacute;sticas</div>
+          </div>
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 10px;">
+            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;">pipeline.py</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">5 tests &mdash; e2e CSV, validaciones, persistencia</div>
+          </div>
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 10px;">
+            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;">api.py</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">11 tests &mdash; endpoints REST, l&iacute;mites, filtros</div>
+          </div>
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:6px;padding:8px 10px;grid-column:1/-1;">
+            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;">notifier.py</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">7 tests &mdash; Slack, Splunk, Sentinel, Teams, fallback de red</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text-muted);">Ejecutar: <code style="background:rgba(255,255,255,.05);padding:2px 6px;border-radius:3px;color:var(--accent-cyan);">pytest tests.py -v</code></div>
+      </div>
+
       <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
         <a href="https://threatscope-three.vercel.app/slides" target="_blank" style="font-size:12px;color:var(--accent-blue);text-decoration:none;">Ver presentaci&oacute;n &rarr;</a>
       </div>
