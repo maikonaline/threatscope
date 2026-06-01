@@ -1241,6 +1241,18 @@
         <span id="wakeup-banner-text">Conectando con el servidor — el servicio en Render.com puede tardar hasta 30s en el primer inicio. Reintentando automáticamente...</span>
       </div>
 
+      <!-- ── BANNER EXPLICATIVO ───────────────────────────── -->
+      <div onclick="openExplainerModal()" style="cursor:pointer;margin-bottom:24px;padding:18px 24px;background:linear-gradient(135deg,rgba(59,130,246,.12) 0%,rgba(6,182,212,.08) 100%);border:1px solid rgba(59,130,246,.3);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:space-between;gap:16px;transition:border-color .2s;" onmouseover="this.style.borderColor='rgba(59,130,246,.6)'" onmouseout="this.style.borderColor='rgba(59,130,246,.3)'">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:40px;height:40px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">&#128161;</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:3px;">&#191;C&oacute;mo funciona ThreatScope?</div>
+            <div style="font-size:11px;color:var(--text-muted);">Isolation Forest &middot; MITRE ATT&amp;CK &middot; AbuseIPDB &middot; Pipeline completo &middot; Qu&eacute; est&aacute; hecho &middot; Qu&eacute; viene</div>
+          </div>
+        </div>
+        <div style="flex-shrink:0;background:rgba(59,130,246,.2);border:1px solid rgba(59,130,246,.4);color:var(--accent-blue);border-radius:var(--radius);padding:7px 16px;font-size:11px;font-weight:600;letter-spacing:.5px;white-space:nowrap;">Ver explicaci&oacute;n &rarr;</div>
+      </div>
+
       <!-- ── MÉTRICAS ────────────────────────────────────── -->
       <div class="section">
         <div class="section-title">Detecciones por nivel de riesgo (ultimas 24h)</div>
@@ -2367,9 +2379,7 @@
     function closeAboutModal() {
       document.getElementById('about-modal').style.display = 'none';
     }
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeAboutModal();
-    });
+    /* Escape cierra ambos modales — manejado en el script de explainer */
     document.getElementById('about-modal').addEventListener('click', e => {
       if (e.target === document.getElementById('about-modal')) closeAboutModal();
     });
@@ -2382,6 +2392,137 @@
       fetchIntegrationsStatus();
       /* Update "hace X segundos" each second even without refresh */
       setInterval(updateTimeDisplay, 5000);
+    });
+  </script>
+
+  <!-- EXPLAINER MODAL -->
+  <div id="explainer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9100;align-items:flex-start;justify-content:center;overflow-y:auto;padding:32px 16px;">
+    <div style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:36px;max-width:680px;width:100%;position:relative;margin:auto;">
+      <button onclick="closeExplainerModal()" style="position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">&#x2715;</button>
+
+      <!-- Título -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+        <div style="font-size:24px;">&#128161;</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--text-primary);">¿Cómo funciona ThreatScope?</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Conceptos, arquitectura y hoja de ruta</div>
+        </div>
+      </div>
+
+      <!-- Sección 1: Isolation Forest -->
+      <div style="margin-bottom:24px;padding:18px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:var(--radius-lg);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:15px;">&#129302;</span>
+          <span style="font-size:13px;font-weight:700;color:var(--accent-blue);">Motor ML — Isolation Forest</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.8;margin-bottom:10px;">Un bosque de árboles de decisión hace preguntas aleatorias sobre cada evento de red. Un evento <strong style="color:var(--text-primary);">normal</strong> necesita muchas preguntas para ser aislado porque se parece a los demás. Un evento <strong style="color:var(--critical);">anómalo</strong> se aísla en pocas preguntas — es raro por naturaleza.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--critical);border-radius:4px;padding:3px 8px;">Score -0.45 → CRÍTICO</span>
+          <span style="font-size:11px;background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.2);color:var(--medium);border-radius:4px;padding:3px 8px;">Score -0.15 → MEDIO</span>
+          <span style="font-size:11px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--low);border-radius:4px;padding:3px 8px;">Score positivo → normal</span>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">&#128313; No necesita ejemplos previos de ataques. Detecta amenazas nuevas (zero-day behavior) igual que Defender for Endpoint en detección por comportamiento.</p>
+      </div>
+
+      <!-- Sección 2: MITRE ATT&CK -->
+      <div style="margin-bottom:24px;padding:18px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:var(--radius-lg);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:15px;">&#127919;</span>
+          <span style="font-size:13px;font-weight:700;color:var(--high);">MITRE ATT&amp;CK</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.8;margin-bottom:10px;">Framework global de tácticas y técnicas de ataque usado por SOCs, CERTs y fabricantes como Microsoft, CrowdStrike y Palo Alto. Cada comportamiento anómalo detectado se mapea a una técnica concreta:</p>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--high);flex-shrink:0;">T1110</span>Brute Force — muchos intentos de login fallidos</div>
+          <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--high);flex-shrink:0;">T1046</span>Network Scan — muchos puertos distintos en poco tiempo</div>
+          <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--high);flex-shrink:0;">T1041</span>Exfiltration — volumen de datos elevado fuera de horario</div>
+          <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:8px;"><span style="color:var(--high);flex-shrink:0;">T1078</span>Valid Accounts — actividad en horario inusual (3 AM)</div>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">&#128313; ThreatScope tiene 17 técnicas y subtécnicas mapeadas. Microsoft Sentinel usa el mismo framework para sus reglas de detección.</p>
+      </div>
+
+      <!-- Sección 3: AbuseIPDB -->
+      <div style="margin-bottom:24px;padding:18px;background:rgba(234,179,8,.06);border:1px solid rgba(234,179,8,.2);border-radius:var(--radius-lg);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:15px;">&#127760;</span>
+          <span style="font-size:13px;font-weight:700;color:var(--medium);">Threat Intelligence — AbuseIPDB</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.8;">Base de datos global de IPs maliciosas. Cuando el ML detecta una anomalía, se consulta la reputación de la IP en tiempo real: si es un nodo Tor, un servidor de C2 conocido o una IP denunciada por la comunidad. El score de reputación (0–100) se combina con el score ML para calcular el nivel de riesgo final.</p>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">&#128313; Ejemplo: IP 185.220.101.5 → AbuseIPDB score 100 + ML score -0.45 → <span style="color:var(--critical);">CRÍTICO confirmado</span>.</p>
+      </div>
+
+      <!-- Sección 4: Pipeline -->
+      <div style="margin-bottom:24px;padding:18px;background:rgba(6,182,212,.06);border:1px solid rgba(6,182,212,.2);border-radius:var(--radius-lg);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:15px;">&#9881;&#65039;</span>
+          <span style="font-size:13px;font-weight:700;color:var(--accent-cyan);">Pipeline completo</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;">
+          <span style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;">CSV de red</span>
+          <span style="color:var(--text-muted);">&#8594;</span>
+          <span style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;">FastAPI</span>
+          <span style="color:var(--text-muted);">&#8594;</span>
+          <span style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;">Isolation Forest</span>
+          <span style="color:var(--text-muted);">&#8594;</span>
+          <span style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;">AbuseIPDB</span>
+          <span style="color:var(--text-muted);">&#8594;</span>
+          <span style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;">MITRE ATT&amp;CK</span>
+          <span style="color:var(--text-muted);">&#8594;</span>
+          <span style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;">SQLite</span>
+          <span style="color:var(--text-muted);">&#8594;</span>
+          <span style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;">Slack / Sentinel</span>
+        </div>
+      </div>
+
+      <!-- Sección 5: Qué está hecho vs qué viene -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+        <div style="padding:16px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:var(--radius-lg);">
+          <div style="font-size:11px;font-weight:700;color:var(--low);letter-spacing:.6px;margin-bottom:10px;">YA IMPLEMENTADO</div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--low);">&#10003;</span>Pipeline ML end-to-end</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--low);">&#10003;</span>17 técnicas MITRE mapeadas</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--low);">&#10003;</span>Threat intel AbuseIPDB</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--low);">&#10003;</span>Alertas Slack en producción</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--low);">&#10003;</span>Código Splunk / Teams listo</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--low);">&#10003;</span>48 tests automatizados</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--low);">&#10003;</span>Docker + CI/CD automático</div>
+          </div>
+        </div>
+        <div style="padding:16px;background:rgba(234,179,8,.06);border:1px solid rgba(234,179,8,.2);border-radius:var(--radius-lg);">
+          <div style="font-size:11px;font-weight:700;color:var(--medium);letter-spacing:.6px;margin-bottom:10px;">EN CONSTRUCCIÓN</div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--medium);">&#9711;</span>Microsoft Sentinel activo</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--medium);">&#9711;</span>Monitorización en tiempo real</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--medium);">&#9711;</span>Panel KQL / threat hunting</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--medium);">&#9711;</span>Reentrenamiento automático</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--medium);">&#9711;</span>PostgreSQL en producción</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--medium);">&#9711;</span>Latencia &lt; 1 segundo</div>
+            <div style="font-size:11px;color:var(--text-secondary);display:flex;gap:6px;"><span style="color:var(--medium);">&#9711;</span>Streaming Kafka (enterprise)</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <a href="https://threatscope-three.vercel.app/slides" target="_blank" style="font-size:12px;color:var(--accent-blue);text-decoration:none;">Ver presentación completa &rarr;</a>
+        <button onclick="closeExplainerModal()" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:var(--accent-blue);border-radius:var(--radius);padding:7px 18px;font-size:12px;cursor:pointer;">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openExplainerModal() {
+      document.getElementById('explainer-modal').style.display = 'flex';
+    }
+    function closeExplainerModal() {
+      document.getElementById('explainer-modal').style.display = 'none';
+    }
+    document.getElementById('explainer-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('explainer-modal')) closeExplainerModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeExplainerModal();
+        closeAboutModal();
+      }
     });
   </script>
 
