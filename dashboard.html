@@ -1307,6 +1307,14 @@
               <span id="analyze-btn-text">Selecciona un CSV primero</span>
             </button>
 
+            <div style="margin-top:14px;padding:12px 14px;background:rgba(6,182,212,.05);border:1px solid rgba(6,182,212,.15);border-radius:var(--radius);font-size:11px;color:var(--text-muted);line-height:1.7;">
+              <div style="color:var(--accent-cyan);font-weight:600;margin-bottom:4px;letter-spacing:.4px;">&#8505;&#xFE0E; ¿Para qu&eacute; sirve este an&aacute;lisis?</div>
+              Carga un CSV con registros de tr&aacute;fico de red y el motor de ML (Isolation Forest) detectar&aacute; autom&aacute;ticamente comportamientos an&oacute;malos: ataques de fuerza bruta, escaneos de puertos, exfiltraci&oacute;n de datos y m&aacute;s. Cada detecci&oacute;n se enriquece con inteligencia de amenazas (AbuseIPDB) y se mapea a t&eacute;cnicas MITRE ATT&amp;CK.
+              <div style="margin-top:8px;">
+                <button onclick="loadDemoCSV()" style="background:transparent;border:1px solid rgba(6,182,212,.3);color:var(--accent-cyan);border-radius:4px;padding:4px 10px;font-size:10px;cursor:pointer;letter-spacing:.4px;">&#9654; Cargar datos de demo</button>
+              </div>
+            </div>
+
             <!-- Result -->
             <div id="analysis-result" class="analysis-result">
               <div class="result-header">
@@ -2270,6 +2278,30 @@
       btn.style.borderColor = 'rgba(59,130,246,.3)';
       btn.style.color = 'var(--accent-blue)';
       dot.classList.remove('active');
+    }
+
+    /* ============================================================
+       DEMO CSV LOADER
+    ============================================================ */
+    function loadDemoCSV() {
+      const csvContent = [
+        'ip,intentos_login,fallos_login,bytes_descargados,horas_actividad,puertos_distintos',
+        '185.220.101.5,537,534,1024000,2,3',
+        '80.82.77.33,12,8,512000,1,74',
+        '10.0.0.45,4,1,1985000000,1,2',
+        '194.165.16.11,89,87,204800,3,8',
+        '192.168.1.55,3,0,102400,8,2',
+        '172.16.0.12,5,1,256000,7,3',
+        '45.141.84.119,22,18,409600,2,31',
+        '10.10.5.8,2,0,51200,9,1',
+        '91.108.4.12,7,6,102400,1,5',
+        '10.0.1.20,3,1,307200,8,2',
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const file = new File([blob], 'demo_ataque_fuerza_bruta.csv', { type: 'text/csv' });
+      handleFileSelect(file);
+      showToast('Demo cargado: ataque de fuerza bruta + escaneo de puertos + exfiltración', 'success');
     }
 
     /* ============================================================
