@@ -23,6 +23,7 @@ from typing import Dict, List
 import urllib.request
 import urllib.error
 
+from config import settings
 from logger import get_logger
 
 log = get_logger(__name__)
@@ -44,7 +45,7 @@ _LEVEL_EMOJI = {
     "BAJO":    "🟢",
 }
 
-_DASHBOARD_URL = "https://threatscope.vercel.app"
+_DASHBOARD_URL = settings.DASHBOARD_URL
 _TIMEOUT_SECONDS = 5
 
 

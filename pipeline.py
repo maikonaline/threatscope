@@ -5,10 +5,11 @@ Orquestador del análisis: ingesta -> ML -> enriquecimiento -> persistencia.
 Manejo robusto de errores y logging detallado.
 """
 
+import ipaddress
 import uuid
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 import pandas as pd
 from pathlib import Path
@@ -103,6 +104,13 @@ class AnalysisPipeline:
             detections = []
             for idx, row in self.df[self.df["es_anomalia"]].iterrows():
                 try:
+                    # Validar IP antes de consultar APIs externas (previene SSRF)
+                    try:
+                        ipaddress.ip_address(str(row["ip"]))
+                    except ValueError:
+                        log.warning(f"IP inválida ignorada: {row['ip']}")
+                        continue
+
                     rep = query_reputation(row["ip"])
                     tecnicas = map_mitre(row)
                     nivel, score = evaluate_threat_level(row["score_anomalia"], rep)
@@ -151,7 +159,7 @@ class AnalysisPipeline:
             # 5. GUARDAR BATCH
             batch.anomalies_found = len(detections)
             batch.status = "completed"
-            batch.completed_at = datetime.utcnow()
+            batch.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
             duration = time.time() - start
             batch.duration_seconds = duration
             db.save_batch(batch)
@@ -178,7 +186,7 @@ class AnalysisPipeline:
         except Exception as e:
             batch.status = "failed"
             batch.error_message = str(e)
-            batch.completed_at = datetime.utcnow()
+            batch.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
             db.save_batch(batch)
             log.error(f"[{self.batch_id}] Pipeline falló: {e}")
             raise

@@ -14,12 +14,12 @@ Uso:
     # df ahora tiene columnas: prediccion, score_anomalia, es_anomalia
 """
 
-import pickle
+import joblib
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
-from sklearn.exceptions import NotFittedError
 from config import settings
 from logger import get_logger
 
@@ -51,10 +51,13 @@ class AnomalyDetector:
     ]
 
     def __init__(self):
-        """Inicializa el detector e intenta cargar modelo existente."""
+        """Inicializa el detector. Carga modelo de disco o entrena con baseline sintético."""
         self.model = None
         self._fitted = False
+        self._training_sample: Optional[pd.DataFrame] = None
         self._load_from_disk()
+        if not self._fitted:
+            self._train_baseline()
 
     def _load_from_disk(self) -> None:
         """
@@ -73,12 +76,11 @@ class AnomalyDetector:
             return
 
         try:
-            with open(model_path, "rb") as f:
-                self.model = pickle.load(f)
+            self.model = joblib.load(model_path)
             self._fitted = True
             log.info(f"Modelo cargado desde {model_path}")
         except Exception as e:
-            log.warning(f"No se pudo cargar modelo guardado ({e}). Se entrenara de nuevo.")
+            log.warning(f"No se pudo cargar modelo guardado ({e}). Se entrenará con baseline.")
             self._init_unfitted_model()
 
     def _init_unfitted_model(self) -> None:
@@ -89,6 +91,27 @@ class AnomalyDetector:
             random_state=settings.ML_RANDOM_STATE,
         )
         self._fitted = False
+
+    def _train_baseline(self) -> None:
+        """
+        Entrena el modelo con tráfico de red sintético y normal como referencia.
+
+        Esto es crítico: el modelo debe aprender qué es "normal" antes de ver
+        datos reales. Si entrenamos con el CSV de análisis, un batch de puro
+        tráfico malicioso sería clasificado como "normal". El baseline garantiza
+        que el modelo tiene una distribución de referencia correcta.
+        """
+        rng = np.random.default_rng(settings.ML_RANDOM_STATE)
+        n = 500
+        baseline = pd.DataFrame({
+            "intentos_login":    rng.poisson(lam=3, size=n).clip(0, 20).astype(float),
+            "fallos_login":      rng.poisson(lam=1, size=n).clip(0, 5).astype(float),
+            "bytes_descargados": rng.lognormal(mean=8.5, sigma=1.2, size=n),   # ~5KB median
+            "horas_actividad":   rng.integers(8, 19, size=n).astype(float),    # horario laboral
+            "puertos_distintos": rng.choice([1, 1, 1, 2, 2, 3], size=n).astype(float),
+        })
+        self.train(baseline)
+        log.info("Modelo inicializado con baseline sintético (500 muestras de tráfico normal).")
 
     def train(self, df: pd.DataFrame) -> None:
         """
@@ -117,6 +140,7 @@ class AnomalyDetector:
             )
             self.model.fit(X)
             self._fitted = True
+            self._training_sample = X.sample(min(100, len(X)), random_state=settings.ML_RANDOM_STATE)
             self._save()
             log.info(f"Modelo entrenado con {len(df)} muestras y guardado en disco.")
         except KeyError as e:
@@ -150,10 +174,8 @@ class AnomalyDetector:
         if df.empty:
             raise ValueError("El DataFrame esta vacio. No hay datos para analizar.")
 
-        # Auto-fit si el modelo no ha sido entrenado aun
         if not self._fitted:
-            log.info("Modelo sin entrenar. Entrenando con datos del batch actual...")
-            self.train(df)
+            raise RuntimeError("El modelo no está entrenado. Llama a train() o _train_baseline() primero.")
 
         try:
             X = df[self.FEATURES].astype(float)
@@ -185,26 +207,39 @@ class AnomalyDetector:
         try:
             model_path = Path(settings.MODEL_SAVE_PATH)
             model_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(model_path, "wb") as f:
-                pickle.dump(self.model, f)
+            joblib.dump(self.model, model_path)
             log.info(f"Modelo guardado en {model_path}")
         except Exception as e:
             log.error(f"Error guardando modelo (no critico): {e}")
 
     def get_feature_importance(self) -> Dict[str, float]:
         """
-        Retorna una aproximacion uniforme de importancia de features.
+        Calcula importancia real de features usando SHAP (SHapley Additive exPlanations).
 
-        Isolation Forest no provee importancia de features nativa.
-        Se retorna distribucion uniforme como placeholder. En produccion
-        se puede usar SHAP para interpretabilidad real.
+        SHAP mide cuánto contribuye cada feature a la decisión del modelo para cada
+        muestra del training set. El valor absoluto promedio es la importancia global.
 
-        Returns:
-            Dict con nombre de feature como clave y peso como valor.
-            Todos los pesos suman 1.0.
+        Si SHAP no está instalado, usa distribución uniforme como fallback.
         """
-        n = len(self.FEATURES)
-        return {feat: round(1.0 / n, 4) for feat in self.FEATURES}
+        if not self._fitted or self._training_sample is None:
+            n = len(self.FEATURES)
+            return {feat: round(1.0 / n, 4) for feat in self.FEATURES}
+
+        try:
+            import shap
+            explainer = shap.TreeExplainer(self.model)
+            shap_values = explainer.shap_values(self._training_sample)
+            importances = np.abs(shap_values).mean(axis=0)
+            total = importances.sum()
+            if total > 0:
+                normalized = importances / total
+            else:
+                normalized = np.ones(len(self.FEATURES)) / len(self.FEATURES)
+            return {feat: round(float(val), 4) for feat, val in zip(self.FEATURES, normalized)}
+        except Exception as e:
+            log.warning(f"SHAP no disponible ({e}). Usando distribución uniforme.")
+            n = len(self.FEATURES)
+            return {feat: round(1.0 / n, 4) for feat in self.FEATURES}
 
     def is_fitted(self) -> bool:
         """

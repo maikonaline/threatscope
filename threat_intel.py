@@ -32,13 +32,32 @@ class MitreTechnique:
     tactic: str
 
 
-# Base de datos de técnicas (simplificada; en prod. se consultaría a la API de MITRE)
+# Base de datos de técnicas MITRE ATT&CK
 MITRE_DB = {
-    "T1110": MitreTechnique("T1110", "Brute Force", "Credential Access"),
-    "T1046": MitreTechnique("T1046", "Network Service Scanning", "Discovery"),
-    "T1041": MitreTechnique("T1041", "Exfiltration Over C2 Channel", "Exfiltration"),
-    "T1078": MitreTechnique("T1078", "Valid Accounts (anomalía horaria)", "Defense Evasion"),
-    "T1090.003": MitreTechnique("T1090.003", "Proxy: Multi-hop Proxy (Tor)", "Command and Control"),
+    # Credential Access
+    "T1110":     MitreTechnique("T1110",     "Brute Force",                       "Credential Access"),
+    "T1110.001": MitreTechnique("T1110.001", "Brute Force: Password Guessing",    "Credential Access"),
+    "T1110.003": MitreTechnique("T1110.003", "Brute Force: Password Spraying",    "Credential Access"),
+    # Discovery
+    "T1046":     MitreTechnique("T1046",     "Network Service Scanning",          "Discovery"),
+    "T1018":     MitreTechnique("T1018",     "Remote System Discovery",           "Discovery"),
+    "T1595":     MitreTechnique("T1595",     "Active Scanning",                   "Reconnaissance"),
+    "T1595.001": MitreTechnique("T1595.001", "Active Scanning: Scanning IP Blocks", "Reconnaissance"),
+    # Exfiltration
+    "T1041":     MitreTechnique("T1041",     "Exfiltration Over C2 Channel",      "Exfiltration"),
+    "T1048":     MitreTechnique("T1048",     "Exfiltration Over Alternative Protocol", "Exfiltration"),
+    "T1071":     MitreTechnique("T1071",     "Application Layer Protocol",        "Command and Control"),
+    # Defense Evasion / Persistence
+    "T1078":     MitreTechnique("T1078",     "Valid Accounts",                    "Defense Evasion"),
+    "T1078.003": MitreTechnique("T1078.003", "Valid Accounts: Local Accounts",    "Persistence"),
+    # Command and Control
+    "T1090.003": MitreTechnique("T1090.003", "Proxy: Multi-hop Proxy (Tor)",      "Command and Control"),
+    "T1071.001": MitreTechnique("T1071.001", "Application Layer Protocol: Web Protocols", "Command and Control"),
+    # Impact
+    "T1486":     MitreTechnique("T1486",     "Data Encrypted for Impact",         "Impact"),
+    "T1485":     MitreTechnique("T1485",     "Data Destruction",                  "Impact"),
+    # Collection
+    "T1005":     MitreTechnique("T1005",     "Data from Local System",            "Collection"),
 }
 
 
@@ -164,24 +183,47 @@ def query_reputation(ip: str) -> Reputation:
 
 def map_mitre(row: dict) -> List[MitreTechnique]:
     """
-    Mapea el comportamiento de una IP a técnicas MITRE.
-    row debe tener: fallos_login, bytes_descargados, puertos_distintos, horas_actividad
+    Mapea el comportamiento de una IP a técnicas MITRE ATT&CK.
+    row debe tener: fallos_login, intentos_login, bytes_descargados, puertos_distintos, horas_actividad
     """
-    tecnicas = []
+    tecnicas: List[MitreTechnique] = []
 
     fallos = float(row.get("fallos_login", 0))
+    intentos = float(row.get("intentos_login", 0))
     bytes_down = float(row.get("bytes_descargados", 0))
     puertos = float(row.get("puertos_distintos", 0))
     hora = float(row.get("horas_actividad", 12))
 
-    if fallos > 30:
-        tecnicas.append(MITRE_DB["T1110"])
-    if puertos > 15:
-        tecnicas.append(MITRE_DB["T1046"])
-    if bytes_down > 100000:
-        tecnicas.append(MITRE_DB["T1041"])
+    # Credential Access — Brute Force
+    if fallos > 100:
+        tecnicas.append(MITRE_DB["T1110.001"])  # Password Guessing intensivo
+    elif fallos > 30:
+        tecnicas.append(MITRE_DB["T1110"])      # Brute Force genérico
+    elif intentos > 20 and fallos < intentos * 0.3:
+        tecnicas.append(MITRE_DB["T1110.003"])  # Password Spraying (muchos intentos, pocos fallos)
+
+    # Reconnaissance / Discovery — Escaneo de red
+    if puertos > 50:
+        tecnicas.append(MITRE_DB["T1595.001"])  # Active Scanning: IP Blocks
+        tecnicas.append(MITRE_DB["T1046"])      # Network Service Scanning
+    elif puertos > 15:
+        tecnicas.append(MITRE_DB["T1046"])      # Network Service Scanning
+        tecnicas.append(MITRE_DB["T1018"])      # Remote System Discovery
+
+    # Exfiltration — Transferencia de datos anómala
+    if bytes_down > 500_000_000:  # >500MB
+        tecnicas.append(MITRE_DB["T1048"])      # Exfiltration Over Alternative Protocol
+        tecnicas.append(MITRE_DB["T1005"])      # Data from Local System
+    elif bytes_down > 100_000:    # >100KB
+        tecnicas.append(MITRE_DB["T1041"])      # Exfiltration Over C2 Channel
+
+    # Defense Evasion — Actividad fuera de horario laboral
     if hora < 6 or hora > 22:
-        tecnicas.append(MITRE_DB["T1078"])
+        tecnicas.append(MITRE_DB["T1078"])      # Valid Accounts
+
+    # C2 — Comunicación sospechosa (actividad fuera de horario + descarga)
+    if (hora < 6 or hora > 22) and bytes_down > 10_000:
+        tecnicas.append(MITRE_DB["T1071.001"])  # Application Layer Protocol: Web
 
     return tecnicas
 

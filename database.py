@@ -5,7 +5,7 @@ Capa de persistencia. Guarda histórico de detecciones y eventos.
 Usa SQLAlchemy para ser agnóstico a la BD (SQLite, PostgreSQL, etc.)
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -23,7 +23,7 @@ class Detection(Base):
     __tablename__ = "detections"
 
     id = Column(Integer, primary_key=True)
-    ip = Column(String(15), nullable=False, index=True)
+    ip = Column(String(45), nullable=False, index=True)  # IPv6 max = 45 chars
     risk_level = Column(String(10), nullable=False)  # CRITICO, ALTO, MEDIO, BAJO
     anomaly_score = Column(Float, nullable=False)
     reputation_score = Column(Float, nullable=False)
@@ -32,7 +32,7 @@ class Detection(Base):
     isp = Column(String(100), nullable=True)
     mitre_techniques = Column(String(500), nullable=True)  # JSON string
     summary = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), index=True)
     batch_id = Column(String(50), nullable=True, index=True)  # para agrupar análisis
 
     def __repr__(self):
@@ -51,7 +51,7 @@ class AnalysisBatch(Base):
     duration_seconds = Column(Float, nullable=True)
     status = Column(String(20), default="pending")  # pending, running, completed, failed
     error_message = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     completed_at = Column(DateTime, nullable=True)
 
     def __repr__(self):
@@ -91,10 +91,11 @@ class Database:
             session.close()
 
     def save_batch(self, batch: AnalysisBatch):
-        """Guarda metadatos de un lote de análisis."""
+        """Guarda o actualiza metadatos de un lote de análisis."""
         session = self.get_session()
         try:
-            session.add(batch)
+            # merge() hace INSERT si el ID no existe, UPDATE si ya existe
+            session.merge(batch)
             session.commit()
             return batch
         except Exception as e:
@@ -117,7 +118,7 @@ class Database:
         from datetime import timedelta
         session = self.get_session()
         try:
-            since = datetime.utcnow() - timedelta(hours=hours)
+            since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=hours)
             return (
                 session.query(Detection)
                 .filter(Detection.created_at >= since)

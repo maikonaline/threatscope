@@ -173,28 +173,29 @@ class TestAnomalyDetector:
         assert "score_anomalia" in result.columns
         assert "es_anomalia" in result.columns
 
-    def test_predict_auto_fit(self, sample_df):
-        """predict() entrena automaticamente si el modelo no tiene fit."""
+    def test_predict_raises_if_not_fitted(self, sample_df):
+        """predict() lanza RuntimeError si el modelo no está entrenado."""
         from analyzer import AnomalyDetector
 
         det = AnomalyDetector.__new__(AnomalyDetector)
         det.model = None
         det._fitted = False
+        det._training_sample = None
         det._init_unfitted_model()
 
-        # No llamamos a train() — debe auto-entrenarse
-        result = det.predict(sample_df)
-        assert det.is_fitted()
-        assert len(result) == len(sample_df)
+        with pytest.raises(RuntimeError, match="no está entrenado"):
+            det.predict(sample_df)
 
     def test_predict_returns_boolean_anomaly(self, sample_df):
-        """es_anomalia debe ser dtype bool."""
+        """es_anomalia debe ser dtype bool (modelo pre-entrenado con baseline)."""
         from analyzer import AnomalyDetector
 
         det = AnomalyDetector.__new__(AnomalyDetector)
         det.model = None
         det._fitted = False
+        det._training_sample = None
         det._init_unfitted_model()
+        det._train_baseline()  # baseline, no datos del batch
         result = det.predict(sample_df)
         assert result["es_anomalia"].dtype == bool
 
@@ -205,7 +206,9 @@ class TestAnomalyDetector:
         det = AnomalyDetector.__new__(AnomalyDetector)
         det.model = None
         det._fitted = False
+        det._training_sample = None
         det._init_unfitted_model()
+        det._train_baseline()
         result = det.predict(sample_df)
         assert pd.api.types.is_float_dtype(result["score_anomalia"])
 
@@ -216,7 +219,9 @@ class TestAnomalyDetector:
         det = AnomalyDetector.__new__(AnomalyDetector)
         det.model = None
         det._fitted = False
+        det._training_sample = None
         det._init_unfitted_model()
+        det._train_baseline()
         with pytest.raises(ValueError, match="vacio"):
             det.predict(pd.DataFrame())
 
@@ -227,7 +232,9 @@ class TestAnomalyDetector:
         det = AnomalyDetector.__new__(AnomalyDetector)
         det.model = None
         det._fitted = False
+        det._training_sample = None
         det._init_unfitted_model()
+        det._train_baseline()
         bad_df = sample_df.drop(columns=["fallos_login"])
         with pytest.raises(KeyError):
             det.predict(bad_df)
@@ -657,3 +664,144 @@ class TestAPI:
         for level in ["CRITICO", "ALTO", "MEDIO", "BAJO"]:
             response = client.get(f"/detections?risk_level={level}")
             assert response.status_code == 200
+
+    def test_analyze_rejects_oversized_file(self, client, tmp_path):
+        """POST /analyze rechaza archivos que superan MAX_UPLOAD_BYTES."""
+        from config import settings
+        big_csv = tmp_path / "big.csv"
+        big_csv.write_text("ip,intentos_login\n1.2.3.4,5")
+        original_limit = settings.MAX_UPLOAD_BYTES
+        settings.MAX_UPLOAD_BYTES = 10
+        try:
+            with open(big_csv, "rb") as f:
+                response = client.post(
+                    "/analyze",
+                    files={"file": ("big.csv", f, "text/csv")},
+                )
+            assert response.status_code == 400
+            assert "grande" in response.json()["detail"].lower()
+        finally:
+            settings.MAX_UPLOAD_BYTES = original_limit
+
+    def test_integrations_status_returns_dict(self, client):
+        """GET /integrations/status retorna estado de los 4 canales."""
+        response = client.get("/integrations/status")
+        assert response.status_code == 200
+        data = response.json()
+        for channel in ["slack", "splunk", "sentinel", "teams"]:
+            assert channel in data
+            assert "configured" in data[channel]
+
+    def test_integrations_test_invalid_channel(self, client):
+        """POST /integrations/test con canal inválido retorna 400."""
+        response = client.post(
+            "/integrations/test",
+            json={"channel": "discord", "config": {}},
+        )
+        assert response.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Tests: notifier.py
+# ---------------------------------------------------------------------------
+
+
+class TestNotifier:
+    """Verifica el sistema de notificaciones multi-canal."""
+
+    def test_get_integrations_status_all_unconfigured(self):
+        """Sin env vars, todos los canales deben estar como no configurados."""
+        import os
+        from notifier import get_integrations_status
+
+        env_vars = [
+            "SLACK_WEBHOOK_URL", "SPLUNK_HEC_URL", "SPLUNK_HEC_TOKEN",
+            "SENTINEL_WORKSPACE_ID", "SENTINEL_PRIMARY_KEY", "TEAMS_WEBHOOK_URL",
+        ]
+        # Limpiar variables para garantizar estado limpio
+        original = {k: os.environ.pop(k, None) for k in env_vars}
+        try:
+            status = get_integrations_status()
+            assert status["slack"]["configured"] is False
+            assert status["splunk"]["configured"] is False
+            assert status["sentinel"]["configured"] is False
+            assert status["teams"]["configured"] is False
+        finally:
+            for k, v in original.items():
+                if v is not None:
+                    os.environ[k] = v
+
+    def test_get_integrations_status_slack_configured(self):
+        """Con SLACK_WEBHOOK_URL configurada, slack aparece como configurado."""
+        import os
+        from notifier import get_integrations_status
+
+        os.environ["SLACK_WEBHOOK_URL"] = "https://hooks.slack.com/test"
+        try:
+            status = get_integrations_status()
+            assert status["slack"]["configured"] is True
+        finally:
+            del os.environ["SLACK_WEBHOOK_URL"]
+
+    def test_send_test_unknown_channel_returns_error(self):
+        """send_test con canal desconocido retorna success=False."""
+        from notifier import send_test
+
+        result = send_test("discord", {})
+        assert result["success"] is False
+        assert "desconocido" in result["detail"].lower()
+
+    def test_send_test_slack_without_url_returns_error(self):
+        """send_test Slack sin webhook_url configurada retorna error descriptivo."""
+        import os
+        from notifier import send_test
+
+        original = os.environ.pop("SLACK_WEBHOOK_URL", None)
+        try:
+            result = send_test("slack", {})
+            assert result["success"] is False
+            assert "SLACK_WEBHOOK_URL" in result["detail"]
+        finally:
+            if original is not None:
+                os.environ["SLACK_WEBHOOK_URL"] = original
+
+    def test_send_test_splunk_missing_token_returns_error(self):
+        """send_test Splunk con solo URL pero sin token retorna error."""
+        import os
+        from notifier import send_test
+
+        os.environ["SPLUNK_HEC_URL"] = "https://splunk.example.com:8088"
+        original_token = os.environ.pop("SPLUNK_HEC_TOKEN", None)
+        try:
+            result = send_test("splunk", {})
+            assert result["success"] is False
+        finally:
+            del os.environ["SPLUNK_HEC_URL"]
+            if original_token is not None:
+                os.environ["SPLUNK_HEC_TOKEN"] = original_token
+
+    def test_send_alerts_does_not_raise(self):
+        """send_alerts no lanza excepciones aunque todos los canales fallen."""
+        from notifier import send_alerts
+
+        detection = {
+            "ip": "185.220.101.5",
+            "risk_level": "CRITICO",
+            "anomaly_score": -0.45,
+            "reputation_score": 100,
+            "is_known_malicious": True,
+            "country": "DE",
+            "mitre_techniques": ["T1110", "T1090.003"],
+            "summary": "Test alert",
+            "batch_id": "test-batch",
+        }
+        # No debe lanzar excepción aunque no haya canales configurados
+        send_alerts(detection)
+
+    def test_post_json_handles_network_error(self):
+        """_post_json retorna ok=False ante error de red, sin lanzar excepción."""
+        from notifier import _post_json
+
+        result = _post_json("http://localhost:1", {"test": True})
+        assert result["ok"] is False
+        assert "error" in result

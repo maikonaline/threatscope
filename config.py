@@ -52,10 +52,26 @@ class Settings:
     BATCH_SIZE: int = int(os.getenv("THREATSCOPE_BATCH_SIZE", "1000"))
     WORKERS: int = int(os.getenv("THREATSCOPE_WORKERS", "4"))
 
+    # SEGURIDAD API
+    # Cuando API_KEY está vacía, la autenticación está deshabilitada (modo demo)
+    API_KEY: str = os.getenv("THREATSCOPE_API_KEY", "")
+    ALLOWED_ORIGINS: str = os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://threatscope-three.vercel.app,http://localhost:3000,http://localhost:8000",
+    )
+    MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))  # 10 MB
+
+    # FRONTEND
+    DASHBOARD_URL: str = os.getenv("DASHBOARD_URL", "https://threatscope-three.vercel.app")
+
     def __post_init__(self):
         """Crear directorios si no existen."""
         for d in [self.DATA_DIR, self.LOGS_DIR, self.MODELS_DIR]:
             d.mkdir(parents=True, exist_ok=True)
+
+    def get_allowed_origins(self) -> list:
+        """Parsea ALLOWED_ORIGINS como lista."""
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
     def db_url(self) -> str:
         """Genera URL de conexión a BD según tipo."""

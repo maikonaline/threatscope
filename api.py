@@ -16,6 +16,7 @@ Documentacion interactiva disponible en:
     http://localhost:8000/redoc  (ReDoc)
 """
 
+import asyncio
 import json
 import os
 import tempfile
@@ -24,7 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -35,6 +36,20 @@ from logger import get_logger
 from pipeline import AnalysisPipeline
 
 log = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Autenticación por API key
+# ---------------------------------------------------------------------------
+
+async def verify_api_key(x_api_key: str = Header(default="")) -> None:
+    """
+    Valida el header X-API-Key.
+    Si THREATSCOPE_API_KEY no está configurada, el acceso es libre (modo demo).
+    """
+    if settings.API_KEY and x_api_key != settings.API_KEY:
+        raise HTTPException(status_code=401, detail="API key inválida o ausente")
+
 
 # ---------------------------------------------------------------------------
 # Schemas de respuesta
@@ -116,10 +131,10 @@ app = FastAPI(
     license_info={"name": "MIT"},
 )
 
-# CORS — permitir frontend en localhost y produccion
+# CORS — dominios permitidos desde config (variable ALLOWED_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En produccion: lista de dominios especificos
+    allow_origins=settings.get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -156,6 +171,7 @@ app.add_middleware(
 )
 async def analyze(
     file: UploadFile = File(..., description="Archivo CSV con eventos de red"),
+    _: None = Depends(verify_api_key),
 ) -> AnalysisResult:
     """
     Ejecuta el pipeline de deteccion sobre un archivo CSV.
@@ -167,7 +183,8 @@ async def analyze(
         AnalysisResult con estadisticas del batch y lista de detecciones.
 
     Raises:
-        HTTPException 400: si el archivo no es CSV o faltan columnas.
+        HTTPException 400: si el archivo no es CSV, supera el límite de tamaño, o faltan columnas.
+        HTTPException 401: si la API key es inválida.
         HTTPException 500: si el pipeline falla por error interno.
     """
     if not file.filename.endswith(".csv"):
@@ -179,6 +196,13 @@ async def analyze(
     # Guardar el CSV en un archivo temporal para que el pipeline lo lea
     try:
         content = await file.read()
+
+        if len(content) > settings.MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Archivo demasiado grande: {len(content):,} bytes. Máximo: {settings.MAX_UPLOAD_BYTES:,} bytes (10 MB).",
+            )
+
         with tempfile.NamedTemporaryFile(
             mode="wb", suffix=".csv", delete=False
         ) as tmp:
@@ -187,14 +211,16 @@ async def analyze(
 
         log.info(f"CSV recibido: {file.filename} ({len(content)} bytes) → {tmp_path}")
 
-        # Instancia nueva del pipeline por request (thread-safe)
+        # Ejecutar pipeline en un thread para no bloquear el event loop de FastAPI
         pipe = AnalysisPipeline()
-        result = pipe.run(tmp_path, source="csv")
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, lambda: pipe.run(tmp_path, source="csv"))
 
         return AnalysisResult(**result)
 
+    except HTTPException:
+        raise
     except ValueError as e:
-        # Error de validacion de datos (columnas faltantes, etc.)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         log.error(f"Error en /analyze: {e}")
@@ -426,7 +452,7 @@ class IntegrationsStatusResponse(BaseModel):
     ),
     tags=["Integrations"],
 )
-async def test_integration(body: IntegrationTestRequest) -> IntegrationTestResponse:
+async def test_integration(body: IntegrationTestRequest, _: None = Depends(verify_api_key)) -> IntegrationTestResponse:
     """
     Prueba la conexion con un canal de notificacion externo.
 
