@@ -180,9 +180,17 @@ class AnomalyDetector:
         try:
             X = df[self.FEATURES].astype(float)
             df = df.copy()  # no mutar el DataFrame original
-            df["prediccion"] = self.model.predict(X)       # -1=anomalia, 1=normal
-            df["score_anomalia"] = self.model.decision_function(X)  # mas negativo = mas anomalo
+            df["prediccion"] = self.model.predict(X)
+            df["score_anomalia"] = self.model.decision_function(X)
             df["es_anomalia"] = df["prediccion"] == -1
+
+            # Capa 2: reglas explícitas para valores fuera del rango de entrenamiento.
+            # Isolation Forest no detecta out-of-range porque sus puntos de división
+            # están bounded al rango del training data. Las reglas cubren este gap.
+            rule_hits = self._apply_security_rules(df)
+            if rule_hits:
+                log.info(f"Reglas de seguridad activadas: {rule_hits}")
+
             n_anomalias = int(df["es_anomalia"].sum())
             log.info(f"Analisis completado: {n_anomalias} anomalias de {len(df)} eventos "
                      f"({n_anomalias/len(df)*100:.1f}%)")
@@ -193,6 +201,38 @@ class AnomalyDetector:
         except Exception as e:
             log.error(f"Error en prediccion: {e}")
             raise
+
+    def _apply_security_rules(self, df: pd.DataFrame) -> list:
+        """
+        Reglas explícitas para patrones que Isolation Forest no detecta.
+
+        Isolation Forest no puede detectar valores fuera del rango de entrenamiento
+        porque sus puntos de división son bounded al min/max del training data.
+        Con un baseline de 1-3 puertos, un escaneo de 74 puertos tiene
+        el mismo score que un valor de 3 (no se puede aislar).
+
+        Esta capa replica lo que los SIEM reales hacen: ML para anomalías
+        comportamentales + reglas para firmas de ataque conocidas.
+        """
+        # Reglas: (columna, umbral, score_sintetico, descripcion)
+        rules = [
+            ("puertos_distintos", 15,  -0.20, "port_scan"),
+            ("fallos_login",      200, -0.25, "brute_force_extreme"),
+        ]
+        hits = []
+        for col, threshold, synthetic_score, name in rules:
+            if col not in df.columns:
+                continue
+            mask = df[col].astype(float) > threshold
+            if mask.any():
+                # Solo aplicar si el ML no lo detectó ya (evitar doble conteo)
+                new_detections = mask & ~df["es_anomalia"]
+                if new_detections.any():
+                    df.loc[new_detections, "score_anomalia"] = synthetic_score
+                    df.loc[new_detections, "prediccion"] = -1
+                    df.loc[new_detections, "es_anomalia"] = True
+                hits.append(f"{name}={int(mask.sum())}")
+        return hits
 
     def _save(self) -> None:
         """
