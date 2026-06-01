@@ -1079,6 +1079,7 @@
         </div>
 
         <div class="header-status">
+          <button id="btn-about" onclick="openAboutModal()" style="background:transparent;border:1px solid var(--border-light);color:var(--text-secondary);border-radius:var(--radius);padding:5px 12px;font-size:11px;cursor:pointer;letter-spacing:.5px;">ℹ SOBRE EL PROYECTO</button>
           <div class="live-indicator">
             <div class="live-dot"></div>
             LIVE
@@ -1092,6 +1093,63 @@
     </div>
   </header>
 
+  <!-- ABOUT MODAL -->
+  <div id="about-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:32px;max-width:560px;width:90%;max-height:85vh;overflow-y:auto;position:relative;">
+      <button onclick="closeAboutModal()" style="position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">&#x2715;</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+        <span style="font-size:20px;font-weight:700;color:var(--text-primary);">ThreatScope</span>
+        <span style="font-size:11px;background:rgba(59,130,246,.15);color:var(--accent-blue);border:1px solid rgba(59,130,246,.3);border-radius:4px;padding:2px 8px;">v1.0</span>
+      </div>
+      <p style="color:var(--text-secondary);font-size:13px;line-height:1.7;margin-bottom:24px;">Sistema de detección de amenazas en tiempo real desarrollado como proyecto de aprendizaje práctico orientado a operaciones SOC. Combina ML, threat intelligence y automatización de alertas.</p>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px;color:var(--accent-cyan);letter-spacing:.8px;margin-bottom:10px;">IMPLEMENTADO</div>
+        <div style="display:flex;flex-direction:column;gap:0;">
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>Pipeline completo: ingesta CSV &rarr; ML &rarr; threat intel &rarr; alerta</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>Detecci&oacute;n de anomal&iacute;as: Isolation Forest (scikit-learn)</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>Threat Intelligence: AbuseIPDB API + validaci&oacute;n anti-SSRF</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>Mapeo MITRE ATT&amp;CK: 17 t&eacute;cnicas y subt&eacute;cnicas</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>Alertas autom&aacute;ticas: Slack webhook (activo en producci&oacute;n)</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>C&oacute;digo de notificaci&oacute;n para Splunk HEC y Microsoft Teams</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>API REST: FastAPI + 48 tests automatizados (unit/integration/e2e)</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;display:flex;gap:8px;"><span style="color:var(--low);flex-shrink:0;">&#10003;</span>Deploy: Docker + Render (backend) + Vercel (frontend)</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px;color:var(--medium);letter-spacing:.8px;margin-bottom:10px;">EN DESARROLLO</div>
+        <div style="display:flex;flex-direction:column;gap:0;">
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--medium);flex-shrink:0;">&#9711;</span>Integraci&oacute;n Microsoft Sentinel &mdash; workspace Azure en configuraci&oacute;n</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--medium);flex-shrink:0;">&#9711;</span>Monitorizaci&oacute;n continua en tiempo real (WebSocket / streaming)</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;"><span style="color:var(--medium);flex-shrink:0;">&#9711;</span>Reentrenamiento autom&aacute;tico del modelo con nuevos datos</div>
+          <div style="font-size:12px;color:var(--text-secondary);padding:6px 0;display:flex;gap:8px;"><span style="color:var(--medium);flex-shrink:0;">&#9711;</span>Panel de threat hunting con queries KQL</div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);letter-spacing:.8px;margin-bottom:10px;">STACK T&Eacute;CNICO</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">Python 3.11</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">FastAPI</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">scikit-learn</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">SQLAlchemy</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">AbuseIPDB</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">MITRE ATT&amp;CK</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">Docker</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">Render</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">Vercel</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">JavaScript</span>
+          <span style="font-size:11px;background:rgba(30,45,74,.8);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text-secondary);">Chart.js</span>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+        <a href="https://threatscope-three.vercel.app/slides" target="_blank" style="font-size:12px;color:var(--accent-blue);text-decoration:none;">Ver presentaci&oacute;n &rarr;</a>
+      </div>
+    </div>
+  </div>
+
   <!-- ============================================================
        MAIN
   ============================================================ -->
@@ -1101,7 +1159,7 @@
       <!-- Wake-up banner -->
       <div id="wakeup-banner" class="wakeup-banner">
         <div class="wakeup-spinner"></div>
-        <span>Despertando servicio en Render.com — esto puede tardar hasta 30 segundos en el primer inicio...</span>
+        <span id="wakeup-banner-text">Conectando con el servidor — el servicio en Render.com puede tardar hasta 30s en el primer inicio. Reintentando automáticamente...</span>
       </div>
 
       <!-- ── MÉTRICAS ────────────────────────────────────── -->
@@ -1413,6 +1471,8 @@
       refreshCountdown: AUTO_REFRESH_SECONDS,
       refreshTimer: null,
       countdownTimer: null,
+      retryCount: 0,
+      retryTimer: null,
     };
 
     /* ============================================================
@@ -1533,18 +1593,17 @@
         state.lastUpdated = Date.now();
         updateTimeDisplay();
       } catch (err) {
-        dom.tableCount.textContent = 'Error cargando detecciones';
+        dom.tableCount.textContent = 'Esperando conexión...';
         dom.detectionsTbody.innerHTML = `
           <tr>
             <td colspan="7">
               <div class="table-empty">
                 <svg class="table-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <circle cx="12" cy="12" r="10"/>
-                  <line x1="15" y1="9" x2="9" y2="15"/>
-                  <line x1="9" y1="9" x2="15" y2="15"/>
+                  <path d="M12 6v6l4 2"/>
                 </svg>
-                <div class="table-empty-title">Error al cargar detecciones</div>
-                <div class="table-empty-sub">${err.message}</div>
+                <div class="table-empty-title">Conectando con el servidor</div>
+                <div class="table-empty-sub">El servicio se iniciará en breve. Las detecciones aparecerán automáticamente.</div>
               </div>
             </td>
           </tr>`;
@@ -1597,6 +1656,10 @@
        RENDER: STATUS
     ============================================================ */
     function renderStatus(data) {
+      state.retryCount = 0;
+      if (state.retryTimer) { clearTimeout(state.retryTimer); state.retryTimer = null; }
+      dom.wakeupBanner.style.display = 'none';
+
       const isOk = data.status === 'ok';
 
       dom.systemBadge.className = `system-status-badge status-${isOk ? 'ok' : 'degraded'}`;
@@ -1646,19 +1709,50 @@
     }
 
     function renderStatusError(err) {
-      dom.systemBadge.className = 'system-status-badge status-degraded';
-      dom.systemText.textContent = 'SIN CONEXION';
+      const isHttpError = err.message.startsWith('HTTP');
 
-      dom.systemInfo.innerHTML = `
-        <div class="info-row">
-          <span class="info-key">API Status</span>
-          <span class="info-value error">ERROR</span>
-        </div>
-        <div class="info-row">
-          <span class="info-key">Detalle</span>
-          <span class="info-value error">${err.message}</span>
-        </div>
-      `;
+      if (!isHttpError) {
+        state.retryCount++;
+        const maxRetries = 15;
+        dom.systemBadge.className = 'system-status-badge status-loading';
+        dom.systemText.textContent = 'RECONECTANDO';
+        dom.wakeupBanner.style.display = 'flex';
+        document.getElementById('wakeup-banner-text').textContent =
+          `Conectando con el servidor — intento ${state.retryCount}/${maxRetries}. El servicio puede tardar hasta 30s en arrancar.`;
+
+        dom.systemInfo.innerHTML = `
+          <div class="info-row">
+            <span class="info-key">API Status</span>
+            <span class="info-value" style="color:var(--medium)">INICIANDO</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Detalle</span>
+            <span class="info-value" style="color:var(--text-secondary)">Cold start Render.com — reintentando automáticamente...</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Intento</span>
+            <span class="info-value" style="color:var(--text-secondary)">${state.retryCount} / ${maxRetries}</span>
+          </div>
+        `;
+
+        if (state.retryCount < maxRetries) {
+          if (state.retryTimer) clearTimeout(state.retryTimer);
+          state.retryTimer = setTimeout(() => fetchStatus(), 10000);
+        }
+      } else {
+        dom.systemBadge.className = 'system-status-badge status-degraded';
+        dom.systemText.textContent = 'SIN CONEXION';
+        dom.systemInfo.innerHTML = `
+          <div class="info-row">
+            <span class="info-key">API Status</span>
+            <span class="info-value error">ERROR</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Detalle</span>
+            <span class="info-value error">${err.message}</span>
+          </div>
+        `;
+      }
     }
 
     /* ============================================================
@@ -2017,6 +2111,22 @@
         btn.textContent = originalText;
       }
     }
+
+    /* ============================================================
+       ABOUT MODAL
+    ============================================================ */
+    function openAboutModal() {
+      document.getElementById('about-modal').style.display = 'flex';
+    }
+    function closeAboutModal() {
+      document.getElementById('about-modal').style.display = 'none';
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeAboutModal();
+    });
+    document.getElementById('about-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('about-modal')) closeAboutModal();
+    });
 
     /* ============================================================
        INIT
